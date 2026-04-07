@@ -18,9 +18,11 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
 """
 
 import json
+import os
 from functools import lru_cache
 
 import requests
+import typer
 from mcp.server.fastmcp import FastMCP, Image
 
 mcp = FastMCP("tori", instructions=(
@@ -545,8 +547,23 @@ def fetch_image_base64(url: str) -> str:
     return f"data:{mime};base64,{b64}"
 
 
-def main():
-    mcp.run()
+_app = typer.Typer(add_completion=False, invoke_without_command=True)
+
+
+@_app.command()
+def _cmd(
+    transport: str = typer.Option("stdio", "--transport", "-t", help="Transport: stdio | sse | streamable-http"),
+    host: str = typer.Option("127.0.0.1", "--host", help="Bind host (HTTP transports only)"),
+    port: int = typer.Option(8000, "--port", "-p", help="Bind port (HTTP transports only)"),
+) -> None:
+    if transport in ("sse", "streamable-http"):
+        os.environ.setdefault("FASTMCP_HOST", host)
+        os.environ.setdefault("FASTMCP_PORT", str(port))
+    mcp.run(transport=transport)
+
+
+def main() -> None:
+    _app()
 
 
 if __name__ == "__main__":

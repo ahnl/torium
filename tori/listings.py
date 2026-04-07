@@ -16,6 +16,8 @@ Endpoints:
 
 from __future__ import annotations
 
+import mimetypes
+import os
 import urllib.parse
 from typing import TYPE_CHECKING, List, Optional
 
@@ -127,6 +129,95 @@ class ListingsAPI:
         return self._c.adinput_put(
             f"/adinput/ad/recommerce/{ad_id}/update", values, etag
         )
+
+    def upload_images(self, ad_id: int, image_paths: list[str]) -> None:
+        """
+        Upload image files to an existing listing draft.
+        Each path is uploaded as a separate request (one image per call).
+        Supported: JPEG, PNG (server converts to JPEG).
+        """
+        for path in image_paths:
+            mime_type, _ = mimetypes.guess_type(path)
+            mime_type = mime_type or "image/jpeg"
+            with open(path, "rb") as f:
+                data = f.read()
+            self._c.adinput_upload_image(ad_id, data, mime_type)
+
+    def create(
+        self,
+        title: str,
+        description: str,
+        price: int,
+        category: str,
+        postal_code: str,
+        condition: str = "2",
+        trade_type: str = "1",
+        image_paths: Optional[List[str]] = None,
+    ) -> dict:
+        """
+        Create and publish a new free (Basic) listing.
+
+        Args:
+            title:       Listing title.
+            description: Listing description.
+            price:       Price in euros (integer).
+            category:    Tori category ID as a string, e.g. "193" (kengät).
+            postal_code: Finnish postal code, e.g. "96100".
+            condition:   Condition ID: "1"=Uusi, "2"=Kuin uusi, "3"=Hyvä, "4"=Tyydyttävä.
+            trade_type:  "1"=Myydään, "2"=Ostetaan, "3"=Annetaan.
+
+        Returns the dict from the publish response: {"order-id": ..., "is-completed": True}.
+        Also sets self._last_created_ad_id to the new listing ID.
+        """
+        # Step 1: create draft
+        _, etag, location = self._c.adinput_post(
+            "/adinput/ad/withModel/recommerce", service="APPS-ADINPUT"
+        )
+        # Extract adId from Location: .../adinput/ad/recommerce/{adId}
+        ad_id = int(location.rstrip("/").rsplit("/", 1)[-1])
+
+        # Step 2a: upload images (before filling in fields so the server
+        # can populate image/multi_image in the stored draft)
+        if image_paths:
+            self.upload_images(ad_id, image_paths)
+            # Fetch the draft after upload so we get the server-assigned image URIs
+            values, etag = self.get_for_edit(ad_id)
+            values.update({
+                "title": title,
+                "description": description,
+                "price": [{"price_amount": str(price)}],
+                "category": str(category),
+                "condition": str(condition),
+                "trade_type": str(trade_type),
+                "location": [{"country": "FI", "postal-code": postal_code}],
+            })
+        else:
+            values = {
+                "title": title,
+                "description": description,
+                "price": [{"price_amount": str(price)}],
+                "category": str(category),
+                "condition": str(condition),
+                "trade_type": str(trade_type),
+                "location": [{"country": "FI", "postal-code": postal_code}],
+                "image": [],
+                "multi_image": [],
+            }
+
+        # Step 2b: fill in fields
+        result = self._c.adinput_put(
+            f"/adinput/ad/recommerce/{ad_id}/update", values, etag
+        )
+
+        # Step 3: publish as Basic (free)
+        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
+        publish_result, _, _ = self._c.adinput_post(
+            f"/adinput/order/choices/{ad_id}",
+            body=body,
+            content_type="application/x-www-form-urlencoded",
+        )
+        publish_result["ad_id"] = ad_id
+        return publish_result
 
     def set_price(self, ad_id: int, price: int) -> dict:
         """

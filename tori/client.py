@@ -175,6 +175,80 @@ class ToriClient:
         resp.raise_for_status()
         return resp.json(), resp.headers.get("ETag", "")
 
+    def adinput_upload_image(self, ad_id: int, image_bytes: bytes, mime_type: str = "image/jpeg") -> None:
+        """
+        Upload one image to a listing via the adinput upload endpoint.
+        POST /adinput/ad/recommerce/{adId}/upload — multipart/form-data, no finn-gw-service.
+        Returns None (202 No Content on success).
+
+        Extra headers observed in captured traffic:
+          upload-draft-interop-version: 6
+          upload-complete: ?1
+        """
+        import uuid
+        boundary = f"Boundary-{uuid.uuid4()}".upper()
+        ct = mime_type.encode()
+        body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="image"\r\n'
+            f"Content-Type: {mime_type}\r\n"
+            f"\r\n"
+        ).encode() + image_bytes + f"\r\n--{boundary}--\r\n".encode()
+
+        path = f"/adinput/ad/recommerce/{ad_id}/upload"
+        bearer = self.auth.get_bearer()
+        key = gw_key("POST", path, "", body)
+        headers = {
+            **_STATIC_HEADERS,
+            "authorization": f"Bearer {bearer}",
+            "finn-gw-key": key,
+            "x-finn-apps-adinput-version-name": _ADINPUT_VERSION,
+            "content-type": f"multipart/form-data; boundary={boundary}",
+            "upload-draft-interop-version": "6",
+            "upload-complete": "?1",
+        }
+        url = ADINPUT_BASE_URL + path
+        resp = self._session.post(url, headers=headers, data=body)
+        if resp.status_code in (401, 403):
+            self.auth.refresh()
+            return self.adinput_upload_image(ad_id, image_bytes, mime_type)
+        resp.raise_for_status()
+
+    def adinput_post(
+        self,
+        path: str,
+        service: str = "",
+        body: bytes = b"",
+        content_type: Optional[str] = None,
+    ) -> tuple[dict, str, str]:
+        """
+        POST to the adinput subdomain.
+        Returns (response_json, etag, location).
+        """
+        bearer = self.auth.get_bearer()
+        key = gw_key("POST", path, service, body)
+        headers = {
+            **_STATIC_HEADERS,
+            "authorization": f"Bearer {bearer}",
+            "finn-gw-key": key,
+            "x-finn-apps-adinput-version-name": _ADINPUT_VERSION,
+            "content-length": str(len(body)),
+        }
+        if service:
+            headers["finn-gw-service"] = service
+        if content_type:
+            headers["content-type"] = content_type
+        url = ADINPUT_BASE_URL + path
+        resp = self._session.post(url, headers=headers, data=body or None)
+        if resp.status_code in (401, 403):
+            self.auth.refresh()
+            return self.adinput_post(path, service, body, content_type)
+        resp.raise_for_status()
+        data = resp.json() if resp.content else {}
+        etag = resp.headers.get("ETag", "")
+        location = resp.headers.get("Location", "")
+        return data, etag, location
+
     def adinput_put(self, path: str, json_body: dict, etag: str) -> dict:
         """
         PUT to the adinput subdomain. No finn-gw-service header on PUT.

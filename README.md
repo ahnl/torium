@@ -10,7 +10,7 @@ Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool
 **1. Clone and install:**
 
 ```bash
-git clone https://github.com/mikael/tori-client
+git clone https://github.com/ahnl/tori-client
 uv tool install ./tori-client
 ```
 

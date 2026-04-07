@@ -106,7 +106,7 @@ class MessagingAPI:
         return self._c.post(
             f"/public/users/{self._uid}/conversations/{conversation_id}/messages",
             _SVC,
-            {"messageType": "textMessage", "text": text},
+            {"messageType": "textMessage", "body": text},
         )
 
     def start_conversation(self, ad_id: int, text: str, item_type: str = "recommerce") -> dict:

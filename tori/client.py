@@ -114,7 +114,7 @@ class ToriClient:
         clean_path = parsed.path
         query = parsed.query
 
-        body = json.dumps(json_body).encode() if json_body is not None else b""
+        body = json.dumps(json_body, ensure_ascii=False).encode("utf-8") if json_body is not None else b""
         bearer = self.auth.get_bearer()
 
         headers = {
@@ -124,7 +124,7 @@ class ToriClient:
             "finn-gw-key": gw_key(method, clean_path, service, body, query),
         }
         if body:
-            headers["content-type"] = "application/json"
+            headers["content-type"] = "application/json; charset=UTF-8"
 
         url = BASE_URL + path
         resp = self._session.request(
@@ -135,7 +135,12 @@ class ToriClient:
             self.auth.refresh()
             return self._request(method, path, service, json_body, _retried=True)
 
-        resp.raise_for_status()
+        if not resp.ok:
+            body_preview = resp.text[:500] if resp.text else "(empty)"
+            raise requests.HTTPError(
+                f"{resp.status_code} {resp.reason} for url: {resp.url}\nResponse body: {body_preview}",
+                response=resp,
+            )
         return resp
 
     def get(self, path: str, service: str) -> dict:

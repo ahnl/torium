@@ -70,17 +70,12 @@ def _ad_type_from_title(title: str) -> str:
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 @auth_app.command("setup")
-def auth_setup():
+def auth_setup(
+    manual: bool = typer.Option(False, "--manual", help="Paste redirect URL manually (required on Windows/Linux if auto-capture fails)"),
+):
     """One-time browser OAuth flow. Saves refresh token to ~/.config/tori/credentials.json."""
-    import os, sys
-    # auth_setup.py lives two directories up (tori-client/../)
-    setup_script = os.path.join(os.path.dirname(__file__), "..", "..", "auth_setup.py")
-    setup_script = os.path.normpath(setup_script)
-    if not os.path.exists(setup_script):
-        rprint("[red]auth_setup.py not found.[/red]")
-        rprint("Expected at:", setup_script)
-        raise typer.Exit(1)
-    os.execv(sys.executable, [sys.executable, setup_script])
+    from tori.auth_setup import main as _run_setup
+    _run_setup(manual=manual)
 
 
 @auth_app.command("status")

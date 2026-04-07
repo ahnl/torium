@@ -18,7 +18,6 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
 """
 
 import json
-import os
 from functools import lru_cache
 
 import requests
@@ -557,8 +556,8 @@ def _cmd(
     port: int = typer.Option(8000, "--port", "-p", help="Bind port (HTTP transports only)"),
 ) -> None:
     if transport in ("sse", "streamable-http"):
-        os.environ.setdefault("FASTMCP_HOST", host)
-        os.environ.setdefault("FASTMCP_PORT", str(port))
+        mcp.settings.host = host
+        mcp.settings.port = port
     mcp.run(transport=transport)
 
 

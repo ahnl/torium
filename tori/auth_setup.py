@@ -9,7 +9,7 @@ logging in, the browser will show a "can't open" error. Copy the full URL
 from the address bar and paste it into the terminal.
 """
 
-import base64, hashlib, hmac, json, os, secrets, subprocess, sys, time
+import base64, hashlib, hmac, json, os, secrets, shutil, subprocess, sys, time
 import urllib.parse, webbrowser
 
 import requests
@@ -38,7 +38,8 @@ on open location theURL
     close access f
 end open location
 """
-    os.makedirs(APP_PATH, exist_ok=True)
+    os.makedirs(os.path.dirname(APP_PATH), exist_ok=True)
+    shutil.rmtree(APP_PATH, ignore_errors=True)
     script_file = "/tmp/tori_handler.applescript"
     with open(script_file, "w") as f:
         f.write(script)
@@ -112,6 +113,7 @@ def main(manual: bool = False) -> None:
         except Exception as e:
             print(f"Warning: could not register URL handler: {e}")
 
+    print(f"\n{auth_url}\n")
     webbrowser.open(auth_url)
 
     if handler_registered:

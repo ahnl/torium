@@ -19,9 +19,13 @@ This places `tori-mcp` (and `tori`) on your PATH globally. No venv path needed.
 tori auth setup
 ```
 
-Opens a browser for OAuth login. On macOS the redirect is captured automatically. On Windows/Linux, see the [Authentication section](#authentication) for how to copy the failed redirect URL from the browser console. Credentials go to `~/.config/tori/credentials.json`.
+Opens a browser for OAuth login. On macOS the redirect is captured automatically. 
 
-Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
+On Windows/Linux, after login the browser will show an infinite loading spinner or a "can't open" error. Open the browser's developer tools (F12) → Console, find the failed redirect URL starting with `fi.tori.www...`, right-click it to copy the link address, and paste it into the terminal.
+
+<img src="docs/windows-oauth-instruction.png" width="800" alt="Windows OAuth instruction showing developer console and terminal" />
+
+Credentials will be saved to `~/.config/tori/credentials.json`. Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
 
 **3. Add to Claude Desktop:**
 

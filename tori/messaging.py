@@ -109,20 +109,30 @@ class MessagingAPI:
             {"messageType": "textMessage", "body": text},
         )
 
-    def start_conversation(self, ad_id: int, text: str, item_type: str = "recommerce") -> dict:
+    def start_conversation(
+        self,
+        ad_id: int,
+        text: str,
+        item_type: str = "recommerce",
+        partner_id: Optional[int] = None,
+    ) -> dict:
         """
         Start a new conversation with a seller (first message).
 
-        item_type: "recommerce" for recommerce listings, "Ad" for classifieds
+        item_type: "recommerce" for recommerce listings, "Ad" for classifieds.
+        partner_id: seller's user ID. If omitted it is fetched automatically
+                    via seller_info().
         """
+        if partner_id is None:
+            info = self.seller_info(ad_id)
+            partner_id = info["owner"]
         return self._c.post(
             f"/public/users/{self._uid}/conversations",
             _SVC,
             {
-                "adId": ad_id,
-                "itemType": item_type,
-                "messageType": "textMessage",
-                "text": text,
+                "item": {"id": str(ad_id), "type": item_type},
+                "partnerId": str(partner_id),
+                "message": {"messageType": "textMessage", "body": text},
             },
         )
 

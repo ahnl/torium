@@ -457,6 +457,7 @@ def favorites():
 def search_cmd(
     query: str = typer.Argument(..., help="Search query"),
     category: Optional[str] = typer.Option(None, "--category", "-c", help="Category code, e.g. 1.93.3217"),
+    location: Optional[str] = typer.Option(None, "--location", "-l", help="Region code, e.g. 0.100018 (Uusimaa)"),
     price_from: Optional[int] = typer.Option(None, "--price-from", help="Min price (EUR)"),
     price_to: Optional[int] = typer.Option(None, "--price-to", help="Max price (EUR)"),
     shipping: bool = typer.Option(False, "--shipping", help="ToriDiili items only"),
@@ -469,6 +470,7 @@ def search_cmd(
         result = client.search.search(
             q=query,
             category=category,
+            location=location or "",
             price_from=price_from,
             price_to=price_to,
             shipping_only=shipping,

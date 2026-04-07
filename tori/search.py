@@ -31,6 +31,7 @@ class SearchAPI:
         self._c = client
         self._category_cache: Optional[dict] = None
         self._adinput_category_cache: Optional[list] = None
+        self._location_cache: Optional[list] = None
 
     def search(
         self,
@@ -209,6 +210,42 @@ class SearchAPI:
                     _walk(children, new_section, new_parent)
 
         _walk(nodes)
+        return result
+
+    def locations(self) -> list:
+        """
+        Location tree (maakunnat → kunnat → alueet). Cached per client instance.
+
+        Fetched from the search filter metadata.
+        """
+        if self._location_cache is None:
+            data = self.search("", include_filters=True, with_pole_position=False)
+            loc = next((f for f in data.get("filters") or [] if f.get("name") == "location"), None)
+            self._location_cache = loc.get("filter_items", []) if loc else []
+        return self._location_cache
+
+    def find_locations(self, query: str = "", max_depth: int = 2) -> list[dict]:
+        """
+        Flatten the location tree into a searchable list.
+
+        Each item: {"code": "0.100018", "name": "Uusimaa", "parent": ""}
+
+        max_depth: 1 = regions only, 2 = regions + municipalities (default).
+        """
+        tree = self.locations()
+        q = query.lower()
+        result = []
+
+        def _walk(items, depth=1, parent=""):
+            for node in items or []:
+                name = node.get("display_name", "")
+                code = node.get("value", "")
+                if not q or q in name.lower():
+                    result.append({"code": code, "name": name, "parent": parent})
+                if depth < max_depth:
+                    _walk(node.get("filter_items", []), depth + 1, name)
+
+        _walk(tree)
         return result
 
     def semantic_search(self, q: str, limit: int = 10) -> list:

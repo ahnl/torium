@@ -343,6 +343,7 @@ def search_my_listings(
 def search_listings(
     q: str,
     category: str = "",
+    location: str = "",
     price_from: int = 0,
     price_to: int = 0,
     shipping_only: bool = False,
@@ -358,6 +359,8 @@ def search_listings(
     Args:
         q:             Search query, e.g. "iphone"
         category:      Sub-category code, e.g. "1.93.3217". Empty = all categories.
+        location:      Region code from get_locations(), e.g. "0.100018" for Uusimaa.
+                       Empty = all Finland.
         price_from:    Minimum price in EUR. 0 = no minimum.
         price_to:      Maximum price in EUR. 0 = no maximum.
         shipping_only: If True, return only ToriDiili (shipping available) items.
@@ -366,6 +369,7 @@ def search_listings(
     result = _client().search.search(
         q=q,
         category=category or None,
+        location=location,
         price_from=price_from or None,
         price_to=price_to or None,
         shipping_only=shipping_only,
@@ -430,6 +434,20 @@ def search_categories(query: str = "") -> str:
     """
     cats = _client().search.find_categories(query)
     return json.dumps(cats, ensure_ascii=False)
+
+
+@mcp.tool()
+def get_locations(query: str = "") -> str:
+    """
+    Get available location/region codes for filtering search results.
+
+    Returns regions (maakunnat) and municipalities (kunnat) with their codes.
+    Use the 'code' field as the location parameter in search_listings().
+
+    query: Finnish keyword to filter by (e.g. "Helsinki", "Uusimaa"). Empty = all.
+    """
+    locs = _client().search.find_locations(query)
+    return json.dumps(locs, ensure_ascii=False)
 
 
 @mcp.tool()

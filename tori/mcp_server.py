@@ -558,6 +558,8 @@ def _cmd(
     if transport in ("sse", "streamable-http"):
         mcp.settings.host = host
         mcp.settings.port = port
+        if host not in ("127.0.0.1", "localhost", "::1"):
+            mcp.settings.transport_security = None
     mcp.run(transport=transport)
 
 

@@ -1,27 +1,64 @@
 # tori-client
 
-Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server** for Claude Desktop / Claude Code.
+Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server** for Claude Desktop.
 
-## Installation
+## MCP Quick Start
+
+**1. Clone and install:**
 
 ```bash
-cd tori-client
-uv venv && uv pip install -e .
+git clone https://github.com/mikael/tori-client
+uv tool install ./tori-client
 ```
 
-## Authentication
+This places `tori-mcp` (and `tori`) on your PATH globally. No venv path needed.
 
-First-time setup — opens a browser for OAuth login and saves a refresh token to `~/.config/tori/credentials.json`:
+**2. Authenticate (once):**
 
 ```bash
 tori auth setup
 ```
 
-All subsequent commands authenticate automatically. The refresh token rotates and is saved on each use (valid ~1 year; bearer token valid ~1 hour).
+Opens a browser for OAuth login. On macOS the redirect is captured automatically. On Windows/Linux, after login the browser shows a "can't open" error. Copy the full URL from the address bar and paste it into the terminal. Credentials go to `~/.config/tori/credentials.json`.
+
+Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
+
+**3. Add to Claude Desktop:**
+
+Go to **Settings → Developer → Edit Config** and add:
+
+```json
+{
+  "mcpServers": {
+    "tori": {
+      "command": "tori-mcp"
+    }
+  }
+}
+```
+
+Restart Claude Desktop. The tori tools are now available.
+
+**Updating:**
 
 ```bash
+cd tori-client && git pull && uv tool install --reinstall .
+```
+
+---
+
+## Authentication
+
+```bash
+tori auth setup    # first-time OAuth login (see below), saves refresh token
 tori auth status   # show stored token info and expiry
 ```
+
+On macOS the OAuth redirect is captured automatically. On Windows/Linux, after login the browser shows a "can't open" error. Copy the full URL from the address bar and paste it into the terminal.
+
+You can also skip the browser flow entirely by setting `TORI_REFRESH_TOKEN` in your environment.
+
+The refresh token rotates and is saved on each use (valid ~1 year; bearer token valid ~1 hour).
 
 ---
 
@@ -85,54 +122,43 @@ tori favorites                     # list favorited items
 
 ---
 
-## MCP Server (Claude Desktop / Claude Code)
+## MCP Tools
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+See [MCP Quick Start](#mcp-quick-start) above for setup. The following tools become available once the server is running:
 
-```json
-{
-  "mcpServers": {
-    "tori": {
-      "command": "/path/to/tori-client/.venv/bin/python",
-      "args": ["/path/to/tori-client/tori/mcp_server.py"]
-    }
-  }
-}
-```
 
-Restart Claude Desktop. The following tools become available:
+| Tool                  | Description                                                                  |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `list_my_listings`    | Own listings, optional `facet` filter                                        |
+| `search_my_listings`  | Own listings with full detail                                                |
+| `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
+| `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
+| `search_categories`   | Find category IDs by Finnish keyword (for create_listing)                    |
+| `create_listing`      | Create and publish a new free listing                                        |
+| `dispose_listing`     | Mark a listing as sold                                                       |
+| `delete_listing`      | Permanently delete a listing                                                 |
+| `edit_listing`        | Edit price, title, or description of a listing                               |
+| `get_unread_count`    | Total unread messages                                                        |
+| `list_conversations`  | Inbox with unread counts                                                     |
+| `get_conversation`    | Full message thread                                                          |
+| `send_message`        | Send a message in a conversation                                             |
+| `list_favorites`      | Favorited items                                                              |
+| `search_listings`     | Search public Tori.fi listings                                               |
+| `get_categories`      | Full category tree (cache this)                                              |
+| `list_saved_searches` | Saved search alerts (hakuvahti)                                              |
+| `create_saved_search` | Create a hakuvahti                                                           |
+| `delete_saved_search` | Delete a hakuvahti                                                           |
+| `fetch_image`         | Fetch a listing photo by URL and return it as an image for vision inspection |
+| `fetch_image_base64`  | Fetch a listing photo and return it as a base64 data URI for HTML embedding  |
 
-| Tool | Description |
-|------|-------------|
-| `list_my_listings` | Own listings, optional `facet` filter |
-| `search_my_listings` | Own listings with full detail |
-| `get_listing` | Full detail of any listing: title, description, price, extras, image URLs |
-| `get_listing_stats` | Clicks / messages / favorites for a listing |
-| `search_categories` | Find category IDs by Finnish keyword (for create_listing) |
-| `create_listing` | Create and publish a new free listing |
-| `dispose_listing` | Mark a listing as sold |
-| `delete_listing` | Permanently delete a listing |
-| `edit_listing` | Edit price, title, or description of a listing |
-| `get_unread_count` | Total unread messages |
-| `list_conversations` | Inbox with unread counts |
-| `get_conversation` | Full message thread |
-| `send_message` | Send a message in a conversation |
-| `list_favorites` | Favorited items |
-| `search_listings` | Search public Tori.fi listings |
-| `get_categories` | Full category tree (cache this) |
-| `list_saved_searches` | Saved search alerts (hakuvahti) |
-| `create_saved_search` | Create a hakuvahti |
-| `delete_saved_search` | Delete a hakuvahti |
-| `fetch_image` | Fetch a listing photo by URL and return it as an image for vision inspection |
-| `fetch_image_base64` | Fetch a listing photo and return it as a base64 data URI for HTML embedding |
 
 ### Image inspection and display
 
 Claude Desktop's `web_fetch` cannot load URLs that originate from MCP tool responses (a prompt-injection security restriction). Both image tools work around this by fetching server-side.
 
-**`fetch_image`** — returns the image as an MCP image object. Use this when you want Claude to inspect a photo with vision: condition, model numbers, serial numbers, spec stickers, visible damage, included accessories, port layout, etc.
+**`fetch_image`** returns the image as an MCP image object. Use this when you want Claude to inspect a photo with vision: condition, model numbers, serial numbers, spec stickers, visible damage, included accessories, port layout, etc.
 
-**`fetch_image_base64`** — returns a `data:image/jpeg;base64,...` URI. Use this to embed photos in an HTML artifact rendered inside Claude Desktop. Drop the returned string straight into an `<img src="...">` tag to build listing cards, search result galleries, or side-by-side comparisons.
+**`fetch_image_base64`** returns a `data:image/jpeg;base64,...` URI. Use this to embed photos in an HTML artifact rendered inside Claude Desktop. Drop the returned string straight into an `<img src="...">` tag to build listing cards, search result galleries, or side-by-side comparisons.
 
 ```html
 <!-- example: listing card from fetch_image_base64 -->
@@ -189,3 +215,4 @@ tori/
 ├── cli.py         # Typer CLI
 └── mcp_server.py  # FastMCP server
 ```
+

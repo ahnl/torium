@@ -1,16 +1,17 @@
 """
 Tori.fi MCP Server.
 
-Run:
-  python mcp_server.py           (stdio, for Claude Code / Claude Desktop)
-  tori-mcp                       (after pip install -e .)
+Install globally:
+  uv tool install ./tori-client
 
-Add to Claude Code config (~/.claude.json):
+Run:
+  tori-mcp
+
+Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json):
   {
     "mcpServers": {
       "tori": {
-        "command": "python",
-        "args": ["/path/to/tori-client/mcp_server.py"]
+        "command": "tori-mcp"
       }
     }
   }

@@ -171,7 +171,7 @@ def create_listing(
     title:        Listing title.
     description:  Listing description.
     price:        Price in euros (integer). Use 0 for free items.
-    category:     Tori category ID as a string. Use get_categories() to find IDs.
+    category:     Tori category ID as a string. Use get_create_categories() to find IDs.
     postal_code:  Finnish postal code, e.g. "96100".
     condition:    "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
     trade_type:   "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
@@ -410,26 +410,28 @@ def search_listings(
 
 
 @mcp.tool()
-def get_categories() -> str:
+def get_search_categories(query: str = "") -> str:
     """
-    Get the full Tori.fi category tree. Use this to find valid category codes
-    for search_listings(). Each leaf node has a destination.search.search_parameters
-    array with the exact sub_category value to pass.
+    Search categories by Finnish name. Returns category codes for search_listings().
 
-    Cache this result — the category tree changes rarely.
-    """
-    data = _client().search.categories()
-    return json.dumps(data, ensure_ascii=False)
-
-
-@mcp.tool()
-def search_categories(query: str = "") -> str:
-    """
-    Search categories by Finnish name. Returns search category codes (e.g. "1.69.3963").
+    query: Finnish keyword (e.g. "kengät", "puhelin"). Empty = all categories.
 
     Use the 'code' field as the category param in search_listings().
     """
     cats = _client().search.find_search_categories(query)
+    return json.dumps(cats, ensure_ascii=False)
+
+
+@mcp.tool()
+def get_create_categories(query: str = "") -> str:
+    """
+    Search categories by Finnish name. Returns category IDs for create_listing().
+
+    query: Finnish keyword (e.g. "kengät", "puhelin"). Empty = all categories.
+
+    Use the 'id' field as the category param in create_listing().
+    """
+    cats = _client().search.find_categories(query)
     return json.dumps(cats, ensure_ascii=False)
 
 

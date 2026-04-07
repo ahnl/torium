@@ -81,8 +81,8 @@ tori listings delete <id> --yes    # skip confirmation
 tori listings edit <id> --price 7  # change price
 tori listings edit <id> --title "New title" --description "..."
 tori listings edit <id> --dry-run  # inspect current values without saving
-tori categories                    # browse all categories with IDs
-tori categories kengät             # filter by Finnish keyword
+tori categories --for-create       # browse categories with IDs for listing creation
+tori categories kengät --for-create  # filter by Finnish keyword
 tori listings create --title "Kenkä" --description "..." --price 10 --category 193 --postal-code 96100
 tori listings create ... --condition 3 --trade-type 1  # condition: 1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä
 ```
@@ -92,10 +92,15 @@ tori listings create ... --condition 3 --trade-type 1  # condition: 1=Uusi 2=Kui
 ```bash
 tori search "iphone"
 tori search "iphone" --category 1.93.3217
+tori search "iphone" --location 1.100018.110091  # filter by region/municipality
 tori search "iphone" --price-from 100 --price-to 500
 tori search "iphone" --shipping          # ToriDiili items only
 tori search "iphone" --page 2
 tori search "iphone" --filters           # show available filter options
+tori categories                    # browse categories with codes for search (default, same as --for-search)
+tori categories kengät             # filter by Finnish keyword
+tori locations                     # browse regions and municipalities
+tori locations helsinki            # filter by Finnish keyword
 ```
 
 Results include a promoted (paalupaikka) listing when one exists. The Type column shows Myydään / Ostetaan / Annetaan.
@@ -138,7 +143,7 @@ See [MCP Quick Start](#mcp-quick-start) above for setup. The following tools bec
 | `search_my_listings`  | Own listings with full detail                                                |
 | `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
 | `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
-| `search_categories`   | Find category IDs by Finnish keyword (for create_listing)                    |
+| `get_create_categories` | Find category IDs by Finnish keyword (for create_listing)                  |
 | `create_listing`      | Create and publish a new free listing                                        |
 | `dispose_listing`     | Mark a listing as sold                                                       |
 | `delete_listing`      | Permanently delete a listing                                                 |
@@ -149,7 +154,8 @@ See [MCP Quick Start](#mcp-quick-start) above for setup. The following tools bec
 | `send_message`        | Send a message in a conversation                                             |
 | `list_favorites`      | Favorited items                                                              |
 | `search_listings`     | Search public Tori.fi listings                                               |
-| `get_categories`      | Full category tree (cache this)                                              |
+| `get_search_categories` | Find category codes by Finnish keyword (for search_listings)               |
+| `get_locations`       | Find region/municipality codes by Finnish keyword (for search_listings)      |
 | `list_saved_searches` | Saved search alerts (hakuvahti)                                              |
 | `create_saved_search` | Create a hakuvahti                                                           |
 | `delete_saved_search` | Delete a hakuvahti                                                           |

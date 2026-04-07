@@ -18,6 +18,11 @@ Commands:
   tori messages send ID TEXT   Send a message in a conversation
 
   tori favorites               List favorited items
+
+  tori categories              Browse categories with codes for search (--category)
+  tori categories --for-create Browse categories with IDs for listing creation
+
+  tori locations               Browse regions and municipalities (returns code for --location)
 """
 
 import json
@@ -400,27 +405,66 @@ def messages_send(
 @app.command("categories")
 def categories_cmd(
     query: Optional[str] = typer.Argument(None, help="Filter by name (Finnish keyword)"),
+    for_create: bool = typer.Option(False, "--for-create", help="Show IDs for listing creation instead of search codes"),
+    for_search: bool = typer.Option(False, "--for-search", help="Show search codes (default)"),
 ):
-    """Browse categories to find the ID for listing creation or search."""
+    """Browse categories. Default: search codes for tori search --category. Use --for-create for listing creation IDs."""
     client = get_client()
     with console.status("Fetching categories..."):
-        cats = client.search.find_categories(query or "")
+        if for_create:
+            cats_create = client.search.find_categories(query or "")
+            if not cats_create:
+                rprint(f"[yellow]No categories matching '{query}'.[/yellow]")
+                return
+            table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+            table.add_column("ID", style="dim", width=6)
+            table.add_column("Category")
+            table.add_column("Under", style="dim")
+            table.add_column("Section", style="dim")
+            for c in cats_create:
+                table.add_row(c["id"], c["label"], c.get("parent", ""), c.get("section", ""))
+            console.print(table)
+            rprint(f"\n[dim]Use ID with: tori listings create --category ID[/dim]")
+        else:
+            cats_search = client.search.find_search_categories(query or "")
+            if not cats_search:
+                rprint(f"[yellow]No categories matching '{query}'.[/yellow]")
+                return
+            table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+            table.add_column("Code", style="dim")
+            table.add_column("Category")
+            table.add_column("Under", style="dim")
+            for c in cats_search:
+                table.add_row(c["code"], c["name"], c.get("parent", ""))
+            console.print(table)
+            rprint(f"\n[dim]Use code with: tori search --category CODE[/dim]")
 
-    if not cats:
-        rprint(f"[yellow]No categories matching '{query}'.[/yellow]")
+
+# ── Locations ─────────────────────────────────────────────────────────────────
+
+@app.command("locations")
+def locations_cmd(
+    query: Optional[str] = typer.Argument(None, help="Filter by name (Finnish keyword)"),
+):
+    """Browse regions and municipalities to find the code for tori search --location."""
+    client = get_client()
+    with console.status("Fetching locations..."):
+        locs = client.search.find_locations(query or "")
+
+    if not locs:
+        rprint(f"[yellow]No locations matching '{query}'.[/yellow]")
         return
 
     table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-    table.add_column("ID", style="dim", width=6)
-    table.add_column("Category")
-    table.add_column("Under", style="dim")
-    table.add_column("Section", style="dim")
+    table.add_column("Code", style="dim")
+    table.add_column("Name")
+    table.add_column("Region", style="dim")
 
-    for c in cats:
-        table.add_row(c["id"], c["label"], c.get("parent", ""), c.get("section", ""))
+    for loc in locs:
+        table.add_row(loc["code"], loc["name"], loc.get("parent", ""))
 
     console.print(table)
-    rprint(f"\n[dim]Use ID with: tori listings create --category ID[/dim]")
+    rprint(f"\n[dim]Use code with: tori search --location CODE[/dim]")
 
 
 # ── Favorites ─────────────────────────────────────────────────────────────────

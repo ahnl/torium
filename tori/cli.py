@@ -11,6 +11,7 @@ Commands:
   tori listings dispose ID     Mark a listing as sold
   tori listings delete ID      Delete a listing (asks for confirmation)
   tori listings edit ID        Edit listing fields (--price, --title, --description)
+  tori listings create         Create and publish a new listing
 
   tori messages                List conversations with unread counts
   tori messages read ID        Show full message thread for a conversation
@@ -242,6 +243,41 @@ def listings_edit(
         rprint(f"  new ETag: {new_etag}")
 
 
+@listings_app.command("create")
+def listings_create(
+    title: str = typer.Option(..., "--title", "-t", help="Listing title"),
+    description: str = typer.Option(..., "--description", "-d", help="Listing description"),
+    price: int = typer.Option(..., "--price", "-p", help="Price in euros"),
+    category: str = typer.Option(..., "--category", "-c", help="Category ID (e.g. 193)"),
+    postal_code: str = typer.Option(..., "--postal-code", "-z", help="Finnish postal code"),
+    condition: str = typer.Option("2", "--condition", help="1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä"),
+    trade_type: str = typer.Option("1", "--trade-type", help="1=Myydään 2=Ostetaan 3=Annetaan"),
+    images: Optional[list[str]] = typer.Option(None, "--image", "-i", help="Image file path (repeat for multiple)"),
+):
+    """Create and publish a new free listing."""
+    client = get_client()
+    status_msg = "Creating listing..." if not images else f"Creating listing with {len(images)} image(s)..."
+    with console.status(status_msg):
+        result = client.listings.create(
+            title=title,
+            description=description,
+            price=price,
+            category=category,
+            postal_code=postal_code,
+            condition=condition,
+            trade_type=trade_type,
+            image_paths=images or [],
+        )
+    ad_id = result.get("ad_id")
+    completed = result.get("is-completed", False)
+    if completed:
+        rprint(f"[green]✓ Listing published![/green] ID: {ad_id}")
+        rprint(f"  [link=https://www.tori.fi/{ad_id}]https://www.tori.fi/{ad_id}[/link]")
+    else:
+        rprint(f"[yellow]Listing created (ID: {ad_id}) but publish status unclear.[/yellow]")
+        rprint(json.dumps(result, ensure_ascii=False))
+
+
 # ── Messages ──────────────────────────────────────────────────────────────────
 
 _CONV_CACHE = os.path.expanduser("~/.cache/tori/conversations.json")
@@ -356,6 +392,34 @@ def messages_send(
     with console.status("Sending..."):
         client.messaging.send(conv_id, text)
     rprint(f"[green]✓ Message sent.[/green]")
+
+
+# ── Categories ────────────────────────────────────────────────────────────────
+
+@app.command("categories")
+def categories_cmd(
+    query: Optional[str] = typer.Argument(None, help="Filter by name (Finnish keyword)"),
+):
+    """Browse categories to find the ID for listing creation or search."""
+    client = get_client()
+    with console.status("Fetching categories..."):
+        cats = client.search.find_categories(query or "")
+
+    if not cats:
+        rprint(f"[yellow]No categories matching '{query}'.[/yellow]")
+        return
+
+    table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+    table.add_column("ID", style="dim", width=6)
+    table.add_column("Category")
+    table.add_column("Under", style="dim")
+    table.add_column("Section", style="dim")
+
+    for c in cats:
+        table.add_row(c["id"], c["label"], c.get("parent", ""), c.get("section", ""))
+
+    console.print(table)
+    rprint(f"\n[dim]Use ID with: tori listings create --category ID[/dim]")
 
 
 # ── Favorites ─────────────────────────────────────────────────────────────────

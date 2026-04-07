@@ -39,6 +39,10 @@ tori listings delete <id> --yes    # skip confirmation
 tori listings edit <id> --price 7  # change price
 tori listings edit <id> --title "New title" --description "..."
 tori listings edit <id> --dry-run  # inspect current values without saving
+tori categories                    # browse all categories with IDs
+tori categories kengät             # filter by Finnish keyword
+tori listings create --title "Kenkä" --description "..." --price 10 --category 193 --postal-code 96100
+tori listings create ... --condition 3 --trade-type 1  # condition: 1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä
 ```
 
 ### Search
@@ -104,6 +108,8 @@ Restart Claude Desktop. The following tools become available:
 | `search_my_listings` | Own listings with full detail |
 | `get_listing` | Full detail of any listing: title, description, price, extras, image URLs |
 | `get_listing_stats` | Clicks / messages / favorites for a listing |
+| `search_categories` | Find category IDs by Finnish keyword (for create_listing) |
+| `create_listing` | Create and publish a new free listing |
 | `dispose_listing` | Mark a listing as sold |
 | `delete_listing` | Permanently delete a listing |
 | `edit_listing` | Edit price, title, or description of a listing |
@@ -148,6 +154,7 @@ listings = client.listings.search(facet="ACTIVE")
 client.listings.dispose(12345)
 client.listings.delete(12345)
 stats = client.listings.stats(12345)
+client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100")
 client.listings.set_price(12345, 7)          # change price directly
 values, etag = client.listings.get_for_edit(12345)  # fetch for editing
 values["title"] = "New title"

@@ -154,6 +154,47 @@ def delete_listing(ad_id: int) -> str:
 
 
 @mcp.tool()
+def create_listing(
+    title: str,
+    description: str,
+    price: int,
+    category: str,
+    postal_code: str,
+    condition: str = "2",
+    trade_type: str = "1",
+    image_paths: str = "",
+) -> str:
+    """
+    Create and publish a new free (Basic) listing on Tori.fi.
+
+    title:        Listing title.
+    description:  Listing description.
+    price:        Price in euros (integer). Use 0 for free items.
+    category:     Tori category ID as a string. Use get_categories() to find IDs.
+    postal_code:  Finnish postal code, e.g. "96100".
+    condition:    "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
+    trade_type:   "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
+    image_paths:  Comma-separated absolute paths to local image files (JPEG/PNG).
+                  e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
+    """
+    paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
+    result = _client().listings.create(
+        title=title,
+        description=description,
+        price=price,
+        category=category,
+        postal_code=postal_code,
+        condition=condition,
+        trade_type=trade_type,
+        image_paths=paths,
+    )
+    ad_id = result.get("ad_id")
+    if result.get("is-completed"):
+        return f"Listing published! ID: {ad_id}. URL: https://www.tori.fi/{ad_id}"
+    return f"Listing created (ID: {ad_id}) but publish status unclear: {result}"
+
+
+@mcp.tool()
 def edit_listing(
     ad_id: int,
     price: int = 0,
@@ -374,6 +415,20 @@ def get_categories() -> str:
     """
     data = _client().search.categories()
     return json.dumps(data, ensure_ascii=False)
+
+
+@mcp.tool()
+def search_categories(query: str = "") -> str:
+    """
+    Search Tori.fi categories by Finnish name. Returns a flat list of selectable
+    categories with their IDs.
+
+    Use the 'id' field as the category parameter in create_listing().
+
+    query: Finnish keyword to filter by (e.g. "kengät", "puhelin"). Empty = all categories.
+    """
+    cats = _client().search.find_categories(query)
+    return json.dumps(cats, ensure_ascii=False)
 
 
 @mcp.tool()

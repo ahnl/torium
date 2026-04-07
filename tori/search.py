@@ -30,6 +30,7 @@ class SearchAPI:
     def __init__(self, client: "ToriClient"):
         self._c = client
         self._category_cache: Optional[dict] = None
+        self._adinput_category_cache: Optional[list] = None
 
     def search(
         self,
@@ -140,6 +141,75 @@ class SearchAPI:
                 "/public/v3/category-explorer?profile=mobile", "MARKETPLACE-NAV-BAR"
             )
         return self._category_cache
+
+    def adinput_categories(self) -> list[dict]:
+        """
+        Fetch and cache the full category tree from the adinput model endpoint.
+        Returns the raw value-nodes list (3-level tree used for listing creation).
+        """
+        if self._adinput_category_cache is None:
+            from .client import ADINPUT_BASE_URL, _ADINPUT_VERSION
+            from .signing import gw_key
+            bearer = self._c.auth.get_bearer()
+            path = "/adinput/model/recommerce"
+            key = gw_key("GET", path, "APPS-ADINPUT")
+            headers = {
+                "authorization": f"Bearer {bearer}",
+                "finn-gw-service": "APPS-ADINPUT",
+                "finn-gw-key": key,
+                "x-finn-apps-adinput-version-name": _ADINPUT_VERSION,
+                "accept": "application/json; charset=UTF-8",
+                "user-agent": "ToriApp_iOS/26.16.0-26903",
+            }
+            resp = self._c._session.get(ADINPUT_BASE_URL + path, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+            cat_field = next(
+                (f for sec in data.get("sections", [])
+                 for f in sec.get("content", [])
+                 if f.get("id") == "category"),
+                None,
+            )
+            self._adinput_category_cache = cat_field.get("value-nodes", []) if cat_field else []
+        return self._adinput_category_cache
+
+    def find_categories(self, query: str = "") -> list[dict]:
+        """
+        Flatten the adinput category tree into a searchable list.
+
+        Each item: {"id": "193", "label": "Miesten kengät",
+                    "parent": "Kengät", "section": "Vaatteet, kosmetiikka ja asusteet"}
+
+        id      → use as category in create_listing() / listings.create()
+
+        If query is given, filter by case-insensitive substring match on
+        label, parent, or section. Only returns persistable (selectable) leaf nodes.
+        """
+        nodes = self.adinput_categories()
+        q = query.lower()
+        result = []
+
+        def _walk(items, section="", parent=""):
+            for node in items or []:
+                label = node.get("label", "")
+                nid = node.get("id", "")
+                children = node.get("children", [])
+                if node.get("persistable") and (
+                    not q or any(q in s.lower() for s in (label, parent, section))
+                ):
+                    result.append({
+                        "id": nid,
+                        "label": label,
+                        "parent": parent,
+                        "section": section,
+                    })
+                if children:
+                    new_section = section or label
+                    new_parent = label if section else parent
+                    _walk(children, new_section, new_parent)
+
+        _walk(nodes)
+        return result
 
     def semantic_search(self, q: str, limit: int = 10) -> list:
         """AI-powered similar items. Returns up to `limit` docs."""

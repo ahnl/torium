@@ -36,7 +36,7 @@ class SearchAPI:
         self,
         q: str,
         category: Optional[str] = None,
-        location: str = "0.100001",
+        location: str = "",
         price_from: Optional[int] = None,
         price_to: Optional[int] = None,
         shipping_only: bool = False,
@@ -52,7 +52,7 @@ class SearchAPI:
         Args:
             q:                Free-text query.
             category:         Sub-category code, e.g. "1.93.3217". None = all categories.
-            location:         Region code. "0.100001" = all Finland (default).
+            location:         Region code. Empty string = all Finland (default).
             price_from:       Min price in EUR.
             price_to:         Max price in EUR.
             shipping_only:    ToriDiili (shipping) items only.
@@ -241,7 +241,7 @@ class SearchAPI:
         q: str,
         description: str,
         category: Optional[str] = None,
-        location: str = "0.100001",
+        location: str = "",
         price_from: Optional[int] = None,
         price_to: Optional[int] = None,
         notifications: Optional[list] = None,

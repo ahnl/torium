@@ -175,44 +175,36 @@ class ToriClient:
         resp.raise_for_status()
         return resp.json(), resp.headers.get("ETag", "")
 
-    def adinput_upload_image(self, ad_id: int, image_bytes: bytes, mime_type: str = "image/jpeg") -> None:
+    def adinput_upload_image(self, ad_id: int, image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
         """
         Upload one image to a listing via the adinput upload endpoint.
         POST /adinput/ad/recommerce/{adId}/upload — multipart/form-data, no finn-gw-service.
-        Returns None (202 No Content on success).
-
-        Extra headers observed in captured traffic:
-          upload-draft-interop-version: 6
-          upload-complete: ?1
+        Signed with empty body (gw_key ignores multipart payload).
+        Returns the Location URL (img.tori.net URL of the uploaded image).
         """
-        import uuid
-        boundary = f"Boundary-{uuid.uuid4()}".upper()
-        ct = mime_type.encode()
-        body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="image"\r\n'
-            f"Content-Type: {mime_type}\r\n"
-            f"\r\n"
-        ).encode() + image_bytes + f"\r\n--{boundary}--\r\n".encode()
-
         path = f"/adinput/ad/recommerce/{ad_id}/upload"
         bearer = self.auth.get_bearer()
-        key = gw_key("POST", path, "", body)
+        key = gw_key("POST", path, "", b"")  # signed with empty body
+        # Don't include content-type here — let requests set it from files= so
+        # the boundary is consistent between header and body.
         headers = {
             **_STATIC_HEADERS,
             "authorization": f"Bearer {bearer}",
             "finn-gw-key": key,
             "x-finn-apps-adinput-version-name": _ADINPUT_VERSION,
-            "content-type": f"multipart/form-data; boundary={boundary}",
             "upload-draft-interop-version": "6",
             "upload-complete": "?1",
         }
+        # Remove accept-encoding so requests doesn't compress our upload
+        headers.pop("accept-encoding", None)
         url = ADINPUT_BASE_URL + path
-        resp = self._session.post(url, headers=headers, data=body)
+        files = {"file": ("image", image_bytes, mime_type)}
+        resp = self._session.post(url, headers=headers, files=files)
         if resp.status_code in (401, 403):
             self.auth.refresh()
             return self.adinput_upload_image(ad_id, image_bytes, mime_type)
         resp.raise_for_status()
+        return resp.headers.get("location", "")
 
     def adinput_post(
         self,

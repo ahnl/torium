@@ -16,13 +16,44 @@ Endpoints:
 
 from __future__ import annotations
 
-import mimetypes
-import os
+import requests
+import struct
+import time
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from .client import ToriClient
+
+
+_IMG_BASE = "https://img.tori.net/dynamic/default/"
+
+
+def _image_dimensions(data: bytes) -> tuple[int, int]:
+    """Return (width, height) by parsing JPEG or PNG file headers."""
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        w, h = struct.unpack('>II', data[16:24])
+        return w, h
+    # JPEG: skip SOI (FF D8), then walk markers
+    i = 2
+    while i < len(data) - 1:
+        if data[i] != 0xFF:
+            break
+        marker = data[i + 1]
+        i += 2
+        if marker == 0xD9:
+            break
+        if 0xD0 <= marker <= 0xD8:  # RST0-RST7 + SOI — no length
+            continue
+        if i + 2 > len(data):
+            break
+        length = struct.unpack('>H', data[i:i + 2])[0]
+        if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xCA, 0xCB):
+            h, w = struct.unpack('>HH', data[i + 3:i + 7])
+            return w, h
+        i += length
+    return 0, 0
 
 
 class ListingsAPI:
@@ -130,18 +161,21 @@ class ListingsAPI:
             f"/adinput/ad/recommerce/{ad_id}/update", values, etag
         )
 
-    def upload_images(self, ad_id: int, image_paths: list[str]) -> None:
+    def upload_images(self, ad_id: int, image_paths: list[str]) -> list[str]:
         """
         Upload image files to an existing listing draft.
         Each path is uploaded as a separate request (one image per call).
         Supported: JPEG, PNG (server converts to JPEG).
+        Returns list of img.tori.net URLs for the uploaded images.
         """
+        locations = []
         for path in image_paths:
-            mime_type, _ = mimetypes.guess_type(path)
-            mime_type = mime_type or "image/jpeg"
             with open(path, "rb") as f:
                 data = f.read()
-            self._c.adinput_upload_image(ad_id, data, mime_type)
+            loc = self._c.adinput_upload_image(ad_id, data, "image/jpg")
+            if loc:
+                locations.append(loc)
+        return locations
 
     def create(
         self,
@@ -153,6 +187,7 @@ class ListingsAPI:
         condition: str = "2",
         trade_type: str = "1",
         image_paths: Optional[List[str]] = None,
+        dry_run: bool = False,
     ) -> dict:
         """
         Create and publish a new free (Basic) listing.
@@ -167,7 +202,6 @@ class ListingsAPI:
             trade_type:  "1"=Myydään, "2"=Ostetaan, "3"=Annetaan.
 
         Returns the dict from the publish response: {"order-id": ..., "is-completed": True}.
-        Also sets self._last_created_ad_id to the new listing ID.
         """
         # Step 1: create draft
         _, etag, location = self._c.adinput_post(
@@ -176,38 +210,62 @@ class ListingsAPI:
         # Extract adId from Location: .../adinput/ad/recommerce/{adId}
         ad_id = int(location.rstrip("/").rsplit("/", 1)[-1])
 
-        # Step 2a: upload images (before filling in fields so the server
-        # can populate image/multi_image in the stored draft)
+        # Step 2a: upload images. The server returns a Location header (img.tori.net URL)
+        # per upload. We use those URLs directly in the PUT body — polling withModel
+        # does not work because the draft never auto-populates multi_image.
+        multi_image = []
+        image_list = []
         if image_paths:
-            self.upload_images(ad_id, image_paths)
-            # Fetch the draft after upload so we get the server-assigned image URIs
-            values, etag = self.get_for_edit(ad_id)
-            values.update({
-                "title": title,
-                "description": description,
-                "price": [{"price_amount": str(price)}],
-                "category": str(category),
-                "condition": str(condition),
-                "trade_type": str(trade_type),
-                "location": [{"country": "FI", "postal-code": postal_code}],
-            })
-        else:
-            values = {
-                "title": title,
-                "description": description,
-                "price": [{"price_amount": str(price)}],
-                "category": str(category),
-                "condition": str(condition),
-                "trade_type": str(trade_type),
-                "location": [{"country": "FI", "postal-code": postal_code}],
-                "image": [],
-                "multi_image": [],
-            }
+            # Read each file once: extract dimensions and upload in the same pass
+            entries = []  # (location, width, height)
+            for img_path in image_paths:
+                with open(img_path, "rb") as f:
+                    data = f.read()
+                w, h = _image_dimensions(data)
+                loc = self._c.adinput_upload_image(ad_id, data, "image/jpg")
+                if not loc:
+                    raise RuntimeError(
+                        f"Upload of {img_path} returned no location. Draft ad {ad_id} was NOT published."
+                    )
+                entries.append((loc, w, h))
+
+            # Poll img.tori.net concurrently until all images are available (upload is async)
+            def _wait_ready(loc: str) -> None:
+                for _ in range(36):  # up to 3 minutes (36 × 5s)
+                    if requests.head(loc, timeout=10).status_code == 200:
+                        return
+                    time.sleep(5)
+                raise RuntimeError(f"Image not available after 3 minutes: {loc}")
+
+            with ThreadPoolExecutor() as ex:
+                for fut in as_completed(ex.submit(_wait_ready, loc) for loc, _, _ in entries):
+                    fut.result()
+
+            _, etag = self._c.adinput_get(f"/adinput/ad/withModel/{ad_id}")
+
+            for loc, w, h in entries:
+                path_suffix = loc.removeprefix(_IMG_BASE)
+                multi_image.append({"description": "", "height": h, "path": path_suffix, "type": "image/jpg", "url": loc, "width": w})
+                image_list.append({"height": str(h), "type": "image/jpg", "uri": path_suffix, "width": str(w)})
 
         # Step 2b: fill in fields
+        values = {
+            "title": title,
+            "description": description,
+            "price": [{"price_amount": str(price)}],
+            "category": str(category),
+            "condition": str(condition),
+            "trade_type": str(trade_type),
+            "location": [{"country": "FI", "postal-code": postal_code}],
+            "image": image_list,
+            "multi_image": multi_image,
+        }
         result = self._c.adinput_put(
             f"/adinput/ad/recommerce/{ad_id}/update", values, etag
         )
+
+        if dry_run:
+            return {"ad_id": ad_id, "dry_run": True}
 
         # Step 3: publish as Basic (free)
         body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"

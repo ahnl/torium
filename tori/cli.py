@@ -253,6 +253,7 @@ def listings_create(
     condition: str = typer.Option("2", "--condition", help="1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä"),
     trade_type: str = typer.Option("1", "--trade-type", help="1=Myydään 2=Ostetaan 3=Annetaan"),
     images: Optional[list[str]] = typer.Option(None, "--image", "-i", help="Image file path (repeat for multiple)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Upload and poll images but stop before publishing"),
 ):
     """Create and publish a new free listing."""
     client = get_client()
@@ -267,8 +268,13 @@ def listings_create(
             condition=condition,
             trade_type=trade_type,
             image_paths=images or [],
+            dry_run=dry_run,
         )
     ad_id = result.get("ad_id")
+    if result.get("dry_run"):
+        rprint(f"[yellow]Dry run complete. Draft {ad_id} left unpublished.[/yellow]")
+        rprint(f"  Delete it: [bold]tori listings delete {ad_id}[/bold]")
+        return
     completed = result.get("is-completed", False)
     if completed:
         rprint(f"[green]✓ Listing published![/green] ID: {ad_id}")

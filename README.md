@@ -1,9 +1,9 @@
 # tori-client
 
-Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
-
 > [!NOTE]  
 > **Disclaimer:** This project is not affiliated with, endorsed by, or sponsored by Tori.fi or Schibsted. It is an independent, community-developed tool.
+
+Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
 
 ## MCP Quick Start
 

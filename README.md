@@ -54,13 +54,9 @@ cd tori-client && git pull && uv tool install --reinstall .
 ## Authentication
 
 ```bash
-tori auth setup    # first-time OAuth login (see below), saves refresh token
+tori auth setup    # first-time OAuth login (see instructions in MCP Quick Start), saves refresh token
 tori auth status   # show stored token info and expiry
 ```
-
-On macOS the OAuth redirect is captured automatically. On Windows/Linux, after login the browser will show an infinite loading spinner or a "can't open" error. Open the browser's developer tools (F12) → Console, find the failed redirect URL starting with `fi.tori.www...`, right-click it to copy the link address, and paste it into the terminal.
-
-<img src="docs/windows-oauth-instruction.png" width="800" alt="Windows OAuth instruction showing developer console and terminal" />
 
 You can also skip the browser flow entirely by setting `TORI_REFRESH_TOKEN` in your environment.
 

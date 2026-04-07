@@ -31,12 +31,13 @@ class SearchAPI:
         self._c = client
         self._category_cache: Optional[dict] = None
         self._adinput_category_cache: Optional[list] = None
+        self._location_cache: Optional[list] = None
 
     def search(
         self,
         q: str,
         category: Optional[str] = None,
-        location: str = "0.100001",
+        location: str = "",
         price_from: Optional[int] = None,
         price_to: Optional[int] = None,
         shipping_only: bool = False,
@@ -52,7 +53,7 @@ class SearchAPI:
         Args:
             q:                Free-text query.
             category:         Sub-category code, e.g. "1.93.3217". None = all categories.
-            location:         Region code. "0.100001" = all Finland (default).
+            location:         Region code. Empty string = all Finland (default).
             price_from:       Min price in EUR.
             price_to:         Max price in EUR.
             shipping_only:    ToriDiili (shipping) items only.
@@ -142,6 +143,28 @@ class SearchAPI:
             )
         return self._category_cache
 
+    def find_search_categories(self, query: str = "") -> list[dict]:
+        """Flatten the category tree into a searchable list of {code, name, parent} dicts."""
+        tree = self.categories()
+        q = query.lower()
+        result = []
+
+        def _walk(nodes, parent=""):
+            for node in nodes or []:
+                label = node.get("label", "")
+                dest = node.get("destinations", {}).get("search", {})
+                params = dest.get("search_parameters", [])
+                match = next((p for p in params if p.get("key") == "sub_category"), None)
+                code = (match.get("values") or [""])[0] if match else ""
+                if code and (not q or q in label.lower() or q in parent.lower()):
+                    result.append({"code": code, "name": label, "parent": parent})
+                _walk(node.get("subtree"), parent=label if not parent else parent)
+
+        all_cat = next((t for t in tree.get("catex_tree", []) if "all" in t.get("id", "")), None)
+        if all_cat:
+            _walk(all_cat.get("subtree"))
+        return result
+
     def adinput_categories(self) -> list[dict]:
         """
         Fetch and cache the full category tree from the adinput model endpoint.
@@ -211,6 +234,42 @@ class SearchAPI:
         _walk(nodes)
         return result
 
+    def locations(self) -> list:
+        """
+        Location tree (maakunnat → kunnat → alueet). Cached per client instance.
+
+        Fetched from the search filter metadata.
+        """
+        if self._location_cache is None:
+            data = self.search("", include_filters=True, with_pole_position=False)
+            loc = next((f for f in data.get("filters") or [] if f.get("name") == "location"), None)
+            self._location_cache = loc.get("filter_items", []) if loc else []
+        return self._location_cache
+
+    def find_locations(self, query: str = "", max_depth: int = 2) -> list[dict]:
+        """
+        Flatten the location tree into a searchable list.
+
+        Each item: {"code": "0.100018", "name": "Uusimaa", "parent": ""}
+
+        max_depth: 1 = regions only, 2 = regions + municipalities (default).
+        """
+        tree = self.locations()
+        q = query.lower()
+        result = []
+
+        def _walk(items, depth=1, parent=""):
+            for node in items or []:
+                name = node.get("display_name", "")
+                code = node.get("value", "")
+                if not q or q in name.lower():
+                    result.append({"code": code, "name": name, "parent": parent})
+                if depth < max_depth:
+                    _walk(node.get("filter_items", []), depth + 1, name)
+
+        _walk(tree)
+        return result
+
     def semantic_search(self, q: str, limit: int = 10) -> list:
         """AI-powered similar items. Returns up to `limit` docs."""
         data = self._c.post(
@@ -241,7 +300,7 @@ class SearchAPI:
         q: str,
         description: str,
         category: Optional[str] = None,
-        location: str = "0.100001",
+        location: str = "",
         price_from: Optional[int] = None,
         price_to: Optional[int] = None,
         notifications: Optional[list] = None,

@@ -1,9 +1,9 @@
 # tori-client
 
-> [!NOTE]
-> **Unofficial Client:** This project is not affiliated with, endorsed by, or sponsored by Tori.fi or Schibsted. It is an independent, community-developed tool.
+Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
 
-Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server** for Claude Desktop.
+> [!NOTE]  
+> **Disclaimer:** This project is not affiliated with, endorsed by, or sponsored by Tori.fi or Schibsted. It is an independent, community-developed tool.
 
 ## MCP Quick Start
 
@@ -26,7 +26,7 @@ Opens a browser for OAuth login. On macOS the redirect is captured automatically
 
 On Windows/Linux, after login the browser will show an infinite loading spinner or a "can't open" error. Open the browser's developer tools (F12) → Console, find the failed redirect URL starting with `fi.tori.www...`, right-click it to copy the link address, and paste it into the terminal. **Do this quickly. The code in the URL expires in 30-60 seconds.**
 
-<img src="docs/windows-oauth-instruction.png" width="800" alt="Windows OAuth instruction showing developer console and terminal" />
+
 
 Credentials will be saved to `~/.config/tori/credentials.json`. Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
 
@@ -161,9 +161,9 @@ See [MCP Quick Start](#mcp-quick-start) above for setup. The following tools bec
 
 Claude Desktop's `web_fetch` cannot load URLs that originate from MCP tool responses (a prompt-injection security restriction). Both image tools work around this by fetching server-side.
 
-**`fetch_image`** returns the image as an MCP image object. Use this when you want Claude to inspect a photo with vision: condition, model numbers, serial numbers, spec stickers, visible damage, included accessories, port layout, etc.
+`**fetch_image**` returns the image as an MCP image object. Use this when you want Claude to inspect a photo with vision: condition, model numbers, serial numbers, spec stickers, visible damage, included accessories, port layout, etc.
 
-**`fetch_image_base64`** returns a `data:image/jpeg;base64,...` URI. Use this to embed photos in an HTML artifact rendered inside Claude Desktop. Drop the returned string straight into an `<img src="...">` tag to build listing cards, search result galleries, or side-by-side comparisons.
+`**fetch_image_base64**` returns a `data:image/jpeg;base64,...` URI. Use this to embed photos in an HTML artifact rendered inside Claude Desktop. Drop the returned string straight into an `<img src="...">` tag to build listing cards, search result galleries, or side-by-side comparisons.
 
 ```html
 <!-- example: listing card from fetch_image_base64 -->

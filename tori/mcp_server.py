@@ -425,14 +425,11 @@ def get_categories() -> str:
 @mcp.tool()
 def search_categories(query: str = "") -> str:
     """
-    Search Tori.fi categories by Finnish name. Returns a flat list of selectable
-    categories with their IDs.
+    Search categories by Finnish name. Returns search category codes (e.g. "1.69.3963").
 
-    Use the 'id' field as the category parameter in create_listing().
-
-    query: Finnish keyword to filter by (e.g. "kengät", "puhelin"). Empty = all categories.
+    Use the 'code' field as the category param in search_listings().
     """
-    cats = _client().search.find_categories(query)
+    cats = _client().search.find_search_categories(query)
     return json.dumps(cats, ensure_ascii=False)
 
 

@@ -143,6 +143,28 @@ class SearchAPI:
             )
         return self._category_cache
 
+    def find_search_categories(self, query: str = "") -> list[dict]:
+        """Flatten the category tree into a searchable list of {code, name, parent} dicts."""
+        tree = self.categories()
+        q = query.lower()
+        result = []
+
+        def _walk(nodes, parent=""):
+            for node in nodes or []:
+                label = node.get("label", "")
+                dest = node.get("destinations", {}).get("search", {})
+                params = dest.get("search_parameters", [])
+                match = next((p for p in params if p.get("key") == "sub_category"), None)
+                code = (match.get("values") or [""])[0] if match else ""
+                if code and (not q or q in label.lower() or q in parent.lower()):
+                    result.append({"code": code, "name": label, "parent": parent})
+                _walk(node.get("subtree"), parent=label if not parent else parent)
+
+        all_cat = next((t for t in tree.get("catex_tree", []) if "all" in t.get("id", "")), None)
+        if all_cat:
+            _walk(all_cat.get("subtree"))
+        return result
+
     def adinput_categories(self) -> list[dict]:
         """
         Fetch and cache the full category tree from the adinput model endpoint.

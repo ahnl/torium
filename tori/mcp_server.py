@@ -307,6 +307,22 @@ def send_message(conversation_id: str, text: str) -> str:
     return json.dumps({"success": True, "message": result}, ensure_ascii=False)
 
 
+@mcp.tool()
+def start_conversation(ad_id: int, text: str, item_type: str = "recommerce") -> dict:
+    """
+    Start a new conversation with a seller by sending the first message.
+
+    Use this when there is no existing conversation yet — i.e. you have a
+    listing ID but no conversation ID.
+
+    ad_id: The listing/ad ID (integer).
+    text: The first message to send.
+    item_type: "recommerce" for recommerce listings, "Ad" for classifieds (default: "recommerce").
+    """
+    result = _client().messaging.start_conversation(ad_id=ad_id, text=text, item_type=item_type)
+    return json.dumps({"success": True, "conversation": result}, ensure_ascii=False)
+
+
 # ── Favorites ─────────────────────────────────────────────────────────────────
 
 @mcp.tool()

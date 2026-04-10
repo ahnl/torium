@@ -47,8 +47,8 @@ from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 if TYPE_CHECKING:
     from .mcp_storage import Storage
 
-_SCHIBSTED_CLIENT_ID = "6079834b9b0b741812e7e91f"
-_REDIRECT_URI = f"fi.tori.www.{_SCHIBSTED_CLIENT_ID}://login"
+from .auth import CLIENT_ID as _SCHIBSTED_CLIENT_ID, REDIRECT_URI as _REDIRECT_URI
+
 _SCHIBSTED_AUTH_URL = "https://login.vend.fi/oauth/authorize"
 
 MCP_ACCESS_TOKEN_TTL = 3600           # 1 hour

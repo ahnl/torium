@@ -9,24 +9,18 @@ logging in, the browser will show a "can't open" error. Copy the full URL
 from the address bar and paste it into the terminal.
 """
 
-import base64, hashlib, hmac, json, os, secrets, shutil, subprocess, sys, time
+import os, secrets, shutil, subprocess, sys, time
 import urllib.parse, webbrowser
 
 import requests
 
-CLIENT_ID = "6079834b9b0b741812e7e91f"
-SPID_SERVER_CLIENT_ID = "650421cf50eeae31ecd2a2d3"
-REDIRECT_URI = f"fi.tori.www.{CLIENT_ID}://login"
-SIGNING_KEY = b"3b535f36-79be-424b-a6fd-116c6e69f137"
+from .auth import CLIENT_ID, REDIRECT_URI, SPID_SERVER_CLIENT_ID, get_tori_token, save_credentials
+from .signing import gw_key
+
 CALLBACK_FILE = "/tmp/tori_auth_callback.txt"
 APP_PATH = os.path.expanduser("~/Applications/ToriAuthHelper.app")
 LSREG = ("/System/Library/Frameworks/CoreServices.framework"
          "/Frameworks/LaunchServices.framework/Support/lsregister")
-
-
-def _gw_key(method, path, service="", body=b""):
-    msg = f"{method.upper()};{path};{service};".encode() + body
-    return base64.b64encode(hmac.new(SIGNING_KEY, msg, hashlib.sha512).digest()).decode()
 
 
 def _register_url_handler():
@@ -60,35 +54,7 @@ end open location
     time.sleep(2)
 
 
-def _get_tori_token(refresh_token: str) -> tuple[str, str]:
-    """Returns (tori_bearer, new_refresh_token)."""
-    r1 = requests.post("https://login.vend.fi/oauth/token",
-        headers={"X-OIDC": "v1"},
-        data={"client_id": CLIENT_ID, "grant_type": "refresh_token",
-              "refresh_token": refresh_token})
-    r1.raise_for_status()
-    access_token = r1.json()["access_token"]
-    new_refresh = r1.json()["refresh_token"]
-
-    r2 = requests.post("https://login.vend.fi/api/2/oauth/exchange",
-        headers={"Authorization": f"Bearer {access_token}"},
-        data={"clientId": SPID_SERVER_CLIENT_ID, "type": "code"})
-    r2.raise_for_status()
-    spid_code = r2.json()["data"]["code"]
-
-    body = json.dumps({"spidCode": spid_code, "deviceId": CLIENT_ID}).encode()
-    r3 = requests.post("https://apps-gw-poc.svc.tori.fi/public/login",
-        headers={"finn-gw-key": _gw_key("POST", "/public/login", "LOGIN-SERVER-AUTH", body),
-                 "finn-gw-service": "LOGIN-SERVER-AUTH",
-                 "content-type": "application/json",
-                 "user-agent": "ToriApp_iOS/26.16.0-26903"},
-        data=body)
-    r3.raise_for_status()
-    return r3.json()["token"]["value"], new_refresh
-
-
 def main(manual: bool = False) -> None:
-    from tori.auth import save_credentials
 
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(
@@ -155,9 +121,9 @@ def main(manual: bool = False) -> None:
     refresh_token = r.json()["refresh_token"]
 
     print("Getting tori Bearer token...")
-    bearer, new_refresh = _get_tori_token(refresh_token)
+    bearer, new_refresh, user_id = get_tori_token(refresh_token)
 
-    save_credentials(new_refresh)
+    save_credentials(new_refresh, user_id)
     print("\n✓ Done! Credentials saved to ~/.config/tori/credentials.json")
     print(f"\nrefresh_token (valid ~1 year):\n{new_refresh}")
     print(f"\ntori Bearer (valid ~1h):\n{bearer}")

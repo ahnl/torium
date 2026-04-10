@@ -27,6 +27,7 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
 
 import html
 import json
+import sys
 import urllib.parse
 from typing import Optional
 
@@ -83,11 +84,8 @@ def _get_client():
         if session is None:
             raise RuntimeError(f"No Tori session for user {user_id}")
 
-        # Capture user_id in closure to avoid late-binding issues
-        _uid = user_id
-
-        def _persist_rotation(new_refresh: str, __uid: int, _uid: int = _uid) -> None:
-            _storage.update_tori_refresh(_uid, new_refresh)  # type: ignore[union-attr]
+        def _persist_rotation(new_refresh: str, _ignored_uid: int) -> None:
+            _storage.update_tori_refresh(user_id, new_refresh)  # type: ignore[union-attr]
 
         _client_cache[user_id] = ToriClient(
             refresh_token=session["tori_refresh_token"],
@@ -683,7 +681,6 @@ _LOGIN_PAGE = """\
 
 @mcp.custom_route("/tori-login", methods=["GET", "POST"])
 async def _tori_login(request: Request) -> HTMLResponse | RedirectResponse:
-    import sys
     import traceback
     try:
         return await _tori_login_inner(request)
@@ -698,7 +695,6 @@ async def _tori_login(request: Request) -> HTMLResponse | RedirectResponse:
 
 
 async def _tori_login_inner(request: Request) -> HTMLResponse | RedirectResponse:
-    import sys
     if _auth_provider is None:
         return HTMLResponse("Auth not configured.", status_code=500)
 

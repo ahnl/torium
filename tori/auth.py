@@ -23,6 +23,7 @@ from .signing import gw_key
 
 CLIENT_ID = "6079834b9b0b741812e7e91f"
 SPID_SERVER_CLIENT_ID = "650421cf50eeae31ecd2a2d3"
+REDIRECT_URI = f"fi.tori.www.{CLIENT_ID}://login"
 CREDENTIALS_PATH = os.path.expanduser("~/.config/tori/credentials.json")
 
 

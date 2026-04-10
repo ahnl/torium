@@ -172,14 +172,13 @@ class Storage:
                 )
 
     def get_mcp_refresh(self, token: str) -> Optional[sqlite3.Row]:
-        """Look up without deleting (called by load_refresh_token)."""
         return self._conn.execute(
             "SELECT user_id, client_id, scopes_json FROM mcp_refresh_tokens WHERE refresh_token=?",
             (token,),
         ).fetchone()
 
     def pop_mcp_refresh(self, token: str) -> Optional[sqlite3.Row]:
-        """Look up and delete (called by exchange_refresh_token)."""
+        """Atomically read and delete (refresh tokens are single-use)."""
         with self._lock:
             row = self._conn.execute(
                 "SELECT user_id, client_id, scopes_json FROM mcp_refresh_tokens WHERE refresh_token=?",
@@ -200,7 +199,7 @@ class Storage:
         now = int(time.time())
         with self._lock:
             with self._conn:
-                # Vacuum expired tokens on each insert
+                # Piggyback cleanup of expired tokens to avoid a separate vacuum job
                 self._conn.execute(
                     "DELETE FROM mcp_access_tokens WHERE expires_at<?", (now,)
                 )

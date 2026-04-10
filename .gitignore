@@ -6,3 +6,5 @@ build/
 .env
 *.db
 docs/*.md
+uv.lock
+.DS_Store

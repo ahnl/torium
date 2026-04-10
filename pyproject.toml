@@ -2,7 +2,7 @@
 name = "tori-client"
 version = "0.1.0"
 description = "Tori.fi API client — library, CLI, and MCP server"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "requests",
     "mcp",

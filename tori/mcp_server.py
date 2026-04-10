@@ -685,6 +685,18 @@ _LOGIN_PAGE = """\
 """
 
 
+@mcp.custom_route("/favicon.ico", methods=["GET"])
+async def _favicon_ico(request: Request):
+    from starlette.responses import Response
+    return Response(content=_FAVICON_ICO, media_type="image/x-icon")
+
+
+@mcp.custom_route("/favicon.png", methods=["GET"])
+async def _favicon_png(request: Request):
+    from starlette.responses import Response
+    return Response(content=_FAVICON_PNG, media_type="image/png")
+
+
 @mcp.custom_route("/tori-login", methods=["GET", "POST"])
 async def _tori_login(request: Request) -> HTMLResponse | RedirectResponse:
     import traceback

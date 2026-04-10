@@ -212,18 +212,48 @@ favs = client.favorites.list()
 
 ---
 
+## Remote MCP Server (claude.ai Connectors)
+
+You can run `tori-mcp` as a remote HTTPS server that multiple users connect to via claude.ai → Customize → Connectors. Each user authenticates their own Tori.fi account through a one-time OAuth popup.
+
+**1. Allow your email (must be done before first login):**
+
+```bash
+tori-mcp allow you@example.com --note "your name"
+tori-mcp list-allowed    # see who has access
+tori-mcp revoke foo@example.com  # remove access
+```
+
+**2. Start the server:**
+
+```bash
+tori-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com
+```
+
+The `--base-url` must be the public HTTPS URL that claude.ai can reach (e.g. via a reverse proxy or SSH tunnel).
+
+**3. Add `https://tori.example.com/mcp` in claude.ai → Customize → Connectors.**
+
+Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted login, then copy the `fi.tori.www...` redirect URL from the browser console and paste it into the form. After that, Claude has a 180-day session — no further logins needed until it expires.
+
+> Each user's Tori credentials are stored separately in SQLite (`~/.config/tori/mcp.db`). The local `~/.config/tori/credentials.json` file used by stdio mode is never touched by the remote server.
+
+---
+
 ## Project Structure
 
 ```
 tori/
-├── auth.py        # OAuth flow, credential storage, ToriAuth class
-├── client.py      # ToriClient: HTTP session, signing, auth retry
-├── signing.py     # finn-gw-key HMAC-SHA512 signing
-├── listings.py    # ListingsAPI
-├── messaging.py   # MessagingAPI
-├── favorites.py   # FavoritesAPI
-├── search.py      # SearchAPI (public search + hakuvahti)
-├── cli.py         # Typer CLI
-└── mcp_server.py  # FastMCP server
+├── auth.py          # OAuth flow, credential storage, ToriAuth class
+├── client.py        # ToriClient: HTTP session, signing, auth retry
+├── signing.py       # finn-gw-key HMAC-SHA512 signing
+├── listings.py      # ListingsAPI
+├── messaging.py     # MessagingAPI
+├── favorites.py     # FavoritesAPI
+├── search.py        # SearchAPI (public search + hakuvahti)
+├── cli.py           # Typer CLI
+├── mcp_server.py    # FastMCP server + login routes + CLI (serve/allow/revoke)
+├── mcp_auth.py      # MCP OAuth 2.1 provider + Schibsted code exchange
+└── mcp_storage.py   # SQLite storage for multi-tenant sessions and tokens
 ```
 

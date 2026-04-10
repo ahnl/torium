@@ -6,7 +6,7 @@ All API namespaces (listings, messaging, favorites) hang off this class.
 
 import json
 import urllib.parse
-from typing import Optional
+from typing import Callable, Optional
 
 import requests
 
@@ -58,8 +58,13 @@ class ToriClient:
         client.favorites.list()
     """
 
-    def __init__(self, refresh_token: Optional[str] = None):
-        self.auth = ToriAuth(refresh_token)
+    def __init__(
+        self,
+        refresh_token: Optional[str] = None,
+        save_on_refresh: bool = True,
+        on_refresh: Optional[Callable[[str, int], None]] = None,
+    ):
+        self.auth = ToriAuth(refresh_token, save_on_refresh=save_on_refresh, on_refresh=on_refresh)
         self._session = requests.Session()
         self._listings = None
         self._messaging = None

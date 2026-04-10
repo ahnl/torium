@@ -15,7 +15,7 @@ For first-time setup (browser OAuth flow), run: python auth_setup.py
 import json
 import os
 import threading
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import requests
 
@@ -108,7 +108,12 @@ class ToriAuth:
         auth.user_id  # available after first get_bearer() call
     """
 
-    def __init__(self, refresh_token: Optional[str] = None):
+    def __init__(
+        self,
+        refresh_token: Optional[str] = None,
+        save_on_refresh: bool = True,
+        on_refresh: Optional[Callable[[str, int], None]] = None,
+    ):
         if refresh_token is None:
             creds = load_credentials()
             refresh_token = creds["refresh_token"]
@@ -118,6 +123,8 @@ class ToriAuth:
         self._refresh_token = refresh_token
         self._bearer: Optional[str] = None
         self._lock = threading.Lock()
+        self._save_on_refresh = save_on_refresh
+        self._on_refresh = on_refresh
 
     def get_bearer(self) -> str:
         if self._bearer is None:
@@ -137,4 +144,7 @@ class ToriAuth:
         self._bearer = bearer
         self._refresh_token = new_refresh
         self.user_id = user_id
-        save_credentials(new_refresh, user_id)
+        if self._save_on_refresh:
+            save_credentials(new_refresh, user_id)
+        if self._on_refresh is not None:
+            self._on_refresh(new_refresh, user_id)

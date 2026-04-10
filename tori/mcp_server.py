@@ -4,8 +4,16 @@ Tori.fi MCP Server.
 Install globally:
   uv tool install ./tori-client
 
-Run:
+Run (local stdio, existing behaviour):
   tori-mcp
+
+Run (remote HTTP for claude.ai):
+  tori-mcp --transport streamable-http --host 0.0.0.0 --port 8000 --base-url https://example.com
+
+Manage the email allowlist (required before first remote login):
+  tori-mcp allow mikael@example.com
+  tori-mcp revoke mikael@example.com
+  tori-mcp list-allowed
 
 Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json):
   {
@@ -17,12 +25,78 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
   }
 """
 
+import html
 import json
-from functools import lru_cache
+import urllib.parse
+from typing import Optional
 
 import requests
 import typer
 from mcp.server.fastmcp import FastMCP, Image
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, RedirectResponse
+
+# ── Module-level state ────────────────────────────────────────────────────────
+# _storage: None in stdio mode; set to Storage instance in HTTP/remote mode.
+# _client_cache: one ToriClient per tori user_id, populated lazily on first tool call.
+#   Why cache? ToriAuth caches the bearer token (~1h lifetime) in self._bearer and
+#   ToriClient holds a requests.Session for connection pooling. Creating a new instance
+#   per request would force 3 Schibsted auth round-trips on every tool call.
+# _auth_provider: ToriMCPAuthProvider; set in _cmd() for HTTP transports.
+
+_storage: Optional["Storage"] = None           # type: ignore[name-defined]
+_client_cache: dict[int, "ToriClient"] = {}    # type: ignore[name-defined]
+_auth_provider = None
+
+
+def _get_client():
+    """
+    Returns a per-user ToriClient, cached by tori user_id.
+
+    Stdio mode (no --base-url): falls back to the local credentials file or
+    TORI_REFRESH_TOKEN env variable — unchanged from original behaviour.
+
+    HTTP/remote mode: resolves the current request's MCP access token to a
+    user_id via SQLite, then returns the cached ToriClient for that user
+    (creating it on first call per user after server start).
+    """
+    if _storage is None:
+        # stdio / local mode — load credentials from disk / env as before
+        from tori import ToriClient
+        return ToriClient()
+
+    from mcp.server.auth.middleware.auth_context import get_access_token
+    from tori import ToriClient
+
+    access = get_access_token()
+    if access is None:
+        raise RuntimeError("No authenticated user in request context")
+
+    row = _storage.get_mcp_access(access.token)
+    if row is None:
+        raise RuntimeError("Access token not found in storage")
+
+    user_id = row["user_id"]
+
+    if user_id not in _client_cache:
+        session = _storage.get_tori_session(user_id)
+        if session is None:
+            raise RuntimeError(f"No Tori session for user {user_id}")
+
+        # Capture user_id in closure to avoid late-binding issues
+        _uid = user_id
+
+        def _persist_rotation(new_refresh: str, __uid: int, _uid: int = _uid) -> None:
+            _storage.update_tori_refresh(_uid, new_refresh)  # type: ignore[union-attr]
+
+        _client_cache[user_id] = ToriClient(
+            refresh_token=session["tori_refresh_token"],
+            save_on_refresh=False,       # DO NOT touch ~/.config/tori/credentials.json
+            on_refresh=_persist_rotation,  # persist rotation to SQLite instead
+        )
+
+    return _client_cache[user_id]
+
 
 mcp = FastMCP("tori", instructions=(
     "Access the user's Tori.fi marketplace account. "
@@ -44,12 +118,6 @@ mcp = FastMCP("tori", instructions=(
 ))
 
 
-@lru_cache(maxsize=1)
-def _client():
-    from tori import ToriClient
-    return ToriClient()
-
-
 # ── Listings ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()
@@ -60,7 +128,7 @@ def list_my_listings(facet: str = "ACTIVE") -> str:
     facet: ACTIVE (default) | EXPIRED | DRAFT | DISPOSED | ALL
     Returns listing summaries with IDs, titles, states, click counts.
     """
-    data = _client().listings.search(facet=facet if facet != "ACTIVE" or facet else None)
+    data = _get_client().listings.search(facet=facet if facet != "ACTIVE" or facet else None)
     summaries = data.get("summaries", [])
     result = []
     for s in summaries:
@@ -94,7 +162,7 @@ def get_listing(ad_id: int) -> str:
     mentioned in the text description. Proactively fetch and inspect images when
     such details would be useful to the user.
     """
-    data = _client().listings.get(ad_id)
+    data = _get_client().listings.get(ad_id)
     ad = data.get("ad", {})
     meta = data.get("meta", {})
 
@@ -128,7 +196,7 @@ def get_listing_stats(ad_id: int) -> str:
 
     ad_id: The listing ID (integer).
     """
-    data = _client().listings.stats(ad_id)
+    data = _get_client().listings.stats(ad_id)
     return json.dumps(data, ensure_ascii=False)
 
 
@@ -140,7 +208,7 @@ def dispose_listing(ad_id: int) -> str:
 
     ad_id: The listing ID to mark as sold.
     """
-    _client().listings.dispose(ad_id)
+    _get_client().listings.dispose(ad_id)
     return f"Listing {ad_id} marked as sold."
 
 
@@ -151,7 +219,7 @@ def delete_listing(ad_id: int) -> str:
 
     ad_id: The listing ID to delete.
     """
-    _client().listings.delete(ad_id)
+    _get_client().listings.delete(ad_id)
     return f"Listing {ad_id} deleted."
 
 
@@ -180,7 +248,7 @@ def create_listing(
                   e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
     """
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
-    result = _client().listings.create(
+    result = _get_client().listings.create(
         title=title,
         description=description,
         price=price,
@@ -216,7 +284,7 @@ def edit_listing(
     if not price and not title and not description:
         return "Error: specify at least one of price, title, or description."
 
-    c = _client()
+    c = _get_client()
     values, etag = c.listings.get_for_edit(ad_id)
 
     changed = []
@@ -241,7 +309,7 @@ def edit_listing(
 @mcp.tool()
 def get_unread_count() -> str:
     """Get the total number of unread messages across all conversations."""
-    count = _client().messaging.unread_count()
+    count = _get_client().messaging.unread_count()
     return json.dumps({"unread_message_count": count})
 
 
@@ -253,7 +321,7 @@ def list_conversations(limit: int = 20, offset: int = 0) -> str:
     Returns conversation IDs, listing titles, other party names, last messages,
     and unread counts.
     """
-    client = _client()
+    client = _get_client()
     groups = client.messaging.list_conversations(limit=limit, offset=offset)
     result = []
     for group in groups:
@@ -281,7 +349,7 @@ def get_conversation(conversation_id: str) -> str:
     conversation_id: The conversation ID string (from list_conversations).
     Returns messages in chronological order with sender and timestamps.
     """
-    client = _client()
+    client = _get_client()
     messages = client.messaging.list_messages(conversation_id)
     result = []
     for msg in reversed(messages):  # oldest first
@@ -303,7 +371,7 @@ def send_message(conversation_id: str, text: str) -> str:
     conversation_id: The conversation ID.
     text: The message text to send.
     """
-    result = _client().messaging.send(conversation_id, text)
+    result = _get_client().messaging.send(conversation_id, text)
     return json.dumps({"success": True, "message": result}, ensure_ascii=False)
 
 
@@ -319,7 +387,7 @@ def start_conversation(ad_id: int, text: str, item_type: str = "recommerce") -> 
     text: The first message to send.
     item_type: "recommerce" for recommerce listings, "Ad" for classifieds (default: "recommerce").
     """
-    result = _client().messaging.start_conversation(ad_id=ad_id, text=text, item_type=item_type)
+    result = _get_client().messaging.start_conversation(ad_id=ad_id, text=text, item_type=item_type)
     return json.dumps({"success": True, "conversation": result}, ensure_ascii=False)
 
 
@@ -328,7 +396,7 @@ def start_conversation(ad_id: int, text: str, item_type: str = "recommerce") -> 
 @mcp.tool()
 def list_favorites() -> str:
     """List all items the user has added to favorites, with item IDs and types."""
-    data = _client().favorites.list()
+    data = _get_client().favorites.list()
     return json.dumps(data, ensure_ascii=False)
 
 
@@ -346,7 +414,7 @@ def search_my_listings(
     facet: Optional filter — ACTIVE | EXPIRED | DRAFT | DISPOSED | PENDING | ALL
     Returns full listing summaries including available actions.
     """
-    data = _client().listings.search(
+    data = _get_client().listings.search(
         facet=facet or None,
         limit=limit,
         offset=offset,
@@ -383,7 +451,7 @@ def search_listings(
         shipping_only: If True, return only ToriDiili (shipping available) items.
         page:          Page number, 1-indexed.
     """
-    result = _client().search.search(
+    result = _get_client().search.search(
         q=q,
         category=category or None,
         location=location,
@@ -435,7 +503,7 @@ def get_search_categories(query: str = "") -> str:
 
     Use the 'code' field as the category param in search_listings().
     """
-    cats = _client().search.find_search_categories(query)
+    cats = _get_client().search.find_search_categories(query)
     return json.dumps(cats, ensure_ascii=False)
 
 
@@ -448,7 +516,7 @@ def get_create_categories(query: str = "") -> str:
 
     Use the 'id' field as the category param in create_listing().
     """
-    cats = _client().search.find_categories(query)
+    cats = _get_client().search.find_categories(query)
     return json.dumps(cats, ensure_ascii=False)
 
 
@@ -462,14 +530,14 @@ def get_locations(query: str = "") -> str:
 
     query: Finnish keyword to filter by (e.g. "Helsinki", "Uusimaa"). Empty = all.
     """
-    locs = _client().search.find_locations(query)
+    locs = _get_client().search.find_locations(query)
     return json.dumps(locs, ensure_ascii=False)
 
 
 @mcp.tool()
 def list_saved_searches() -> str:
     """List all saved search alerts (hakuvahti) for the user."""
-    data = _client().search.list_saved_searches()
+    data = _get_client().search.list_saved_searches()
     return json.dumps(data, ensure_ascii=False)
 
 
@@ -494,7 +562,7 @@ def create_saved_search(
         price_from:  Min price filter. 0 = no minimum.
         price_to:    Max price filter. 0 = no maximum.
     """
-    new_id = _client().search.create_saved_search(
+    new_id = _get_client().search.create_saved_search(
         q=q,
         description=description,
         category=category or None,
@@ -507,7 +575,7 @@ def create_saved_search(
 @mcp.tool()
 def delete_saved_search(saved_search_id: int) -> str:
     """Delete a hakuvahti by its numeric ID (from list_saved_searches)."""
-    _client().search.delete_saved_search(saved_search_id)
+    _get_client().search.delete_saved_search(saved_search_id)
     return json.dumps({"deleted": True, "id": saved_search_id})
 
 
@@ -562,21 +630,258 @@ def fetch_image_base64(url: str) -> str:
     return f"data:{mime};base64,{b64}"
 
 
-_app = typer.Typer(add_completion=False, invoke_without_command=True)
+# ── Login routes (OAuth flow) ──────────────────────────────────────────────────
+
+_LOGIN_PAGE = """\
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tori MCP server</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; max-width: 540px; margin: 60px auto; padding: 0 16px; color: #222; }}
+    h1 {{ font-size: 1.3rem; margin-bottom: 4px; }}
+    .step {{ margin: 24px 0 8px; font-weight: 600; }}
+    a.btn, button {{
+      display: inline-block; padding: 10px 20px; border-radius: 6px;
+      background: #e8002d; color: #fff; font-size: 1rem;
+      text-decoration: none; border: none; cursor: pointer;
+    }}
+    textarea {{ width: 100%; height: 80px; font-family: monospace; font-size: 0.85rem;
+                padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }}
+    .error {{ background: #fff0f0; border: 1px solid #fbb; border-radius: 4px;
+              padding: 10px 14px; margin-bottom: 16px; color: #900; }}
+    ol {{ padding-left: 1.2em; }}
+    li {{ margin: 6px 0; }}
+    small {{ color: #555; }}
+    code {{ background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }}
+  </style>
+</head>
+<body>
+  <h1>Tori MCP server</h1>
+  {error}
+  <p class="step">Step 1: Log in to Tori.fi</p>
+  <p><a class="btn" href="{auth_url}" target="_blank" rel="noopener">Log in to Tori.fi &rarr;</a></p>
+  <p class="step">Step 2: Copy the redirect URL from the browser console</p>
+  <small><ol>
+    <li>After clicking the button, log in to Tori.fi in the new tab.</li>
+    <li>The page will loop on <em>Kirjaudutaan</em>. This is expected.</li>
+    <li>Open developer tools in that tab: <strong>F12</strong> on Windows/Linux, <strong>Cmd+Option+I</strong> on Mac.</li>
+    <li>Go to the <strong>Console</strong> tab and find the URL starting with <code>fi.tori.www</code>.</li>
+    <li>Copy that full URL and paste it below.</li>
+  </ol></small>
+  <p><small><strong>Do this quickly.</strong> The code in the URL expires in 30&ndash;60 seconds.</small></p>
+  <form method="POST">
+    <input type="hidden" name="state" value="{state}">
+    <p><textarea name="callback_url" placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&amp;state=..." required></textarea></p>
+    <button type="submit" onclick="this.disabled=true;this.textContent='Connecting…';this.form.submit()">Connect</button>
+  </form>
+</body>
+</html>
+"""
 
 
-@_app.command()
+@mcp.custom_route("/tori-login", methods=["GET", "POST"])
+async def _tori_login(request: Request) -> HTMLResponse | RedirectResponse:
+    import sys
+    import traceback
+    try:
+        return await _tori_login_inner(request)
+    except Exception as exc:
+        tb = traceback.format_exc()
+        print(f"[tori-login] {request.method} {request.url} → UNHANDLED {type(exc).__name__}: {exc}\n{tb}",
+              file=sys.stderr, flush=True)
+        return HTMLResponse(
+            f"<h2>Internal server error</h2><pre>{html.escape(str(exc))}\n\n{html.escape(tb)}</pre>",
+            status_code=500,
+        )
+
+
+async def _tori_login_inner(request: Request) -> HTMLResponse | RedirectResponse:
+    import sys
+    if _auth_provider is None:
+        return HTMLResponse("Auth not configured.", status_code=500)
+
+    if request.method == "GET":
+        mcp_state = request.query_params.get("state", "")
+        print(f"[tori-login] GET state={mcp_state!r}", file=sys.stderr, flush=True)
+        pending = _auth_provider.refresh_schibsted_session(mcp_state)
+        if pending is None:
+            known = list(_auth_provider._pending.keys())
+            print(f"[tori-login] GET: state not in _pending. known states: {known}",
+                  file=sys.stderr, flush=True)
+            return HTMLResponse("Invalid or expired login session.", status_code=400)
+        return HTMLResponse(_LOGIN_PAGE.format(
+            auth_url=html.escape(pending.schibsted_auth_url),
+            state=html.escape(mcp_state),
+            error="",
+        ))
+
+    # POST — process pasted callback URL
+    form = await request.form()
+    mcp_state = form.get("state", "")
+    callback_url = str(form.get("callback_url", "")).strip()
+    print(f"[tori-login] POST state={mcp_state!r} callback_url_len={len(callback_url)}",
+          file=sys.stderr, flush=True)
+    pending = _auth_provider.get_pending(mcp_state)
+
+    def _error(msg: str) -> HTMLResponse:
+        pending2 = _auth_provider.refresh_schibsted_session(mcp_state)
+        if pending2 is None:
+            return HTMLResponse("Invalid or expired login session.", status_code=400)
+        return HTMLResponse(_LOGIN_PAGE.format(
+            auth_url=html.escape(pending2.schibsted_auth_url),
+            state=html.escape(mcp_state),
+            error=f'<div class="error">{html.escape(msg)}</div>',
+        ))
+
+    if pending is None:
+        return HTMLResponse("Invalid or expired login session.", status_code=400)
+
+    # Parse the pasted callback URL
+    try:
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(callback_url).query)
+    except Exception:
+        return _error("Could not parse the URL. Please paste the full address bar URL.")
+
+    if "error" in qs:
+        return _error(f"Tori.fi login error: {qs['error'][0]}")
+
+    if qs.get("state", [None])[0] != pending.schibsted_state:
+        return _error("State mismatch. Please click the Tori.fi button again to get a fresh login link.")
+
+    code_list = qs.get("code")
+    if not code_list:
+        return _error("No authorization code found in the URL. Did you paste the right URL?")
+
+    # Exchange Schibsted code for Tori refresh token, then fetch identity from /v2/me
+    from .mcp_auth import exchange_schibsted_code, fetch_tori_identity
+    try:
+        initial_refresh = exchange_schibsted_code(code_list[0], pending.pkce_verifier)
+    except requests.HTTPError as exc:
+        body = exc.response.text[:500] if exc.response is not None else ""
+        status = exc.response.status_code if exc.response is not None else "?"
+        print(f"[tori-login] exchange_schibsted_code failed {status}: {body}", file=sys.stderr, flush=True)
+        return _error(
+            f"Schibsted code exchange failed ({status}). "
+            "The code may have expired — it's valid for ~30 seconds. Please log in again."
+        )
+    except Exception as exc:
+        print(f"[tori-login] exchange_schibsted_code unexpected error: {exc}", file=sys.stderr, flush=True)
+        return _error(f"Unexpected error during code exchange: {exc}")
+
+    try:
+        new_refresh, user_id, email = fetch_tori_identity(initial_refresh)
+    except requests.HTTPError as exc:
+        body = exc.response.text[:500] if exc.response is not None else ""
+        status = exc.response.status_code if exc.response is not None else "?"
+        print(f"[tori-login] fetch_tori_identity failed {status}: {body}", file=sys.stderr, flush=True)
+        return _error(f"Failed to fetch Tori identity ({status}). Please try again.")
+    except Exception as exc:
+        print(f"[tori-login] fetch_tori_identity unexpected error: {exc}", file=sys.stderr, flush=True)
+        return _error(f"Unexpected error fetching Tori identity: {exc}")
+
+    # Check allowlist before issuing any MCP tokens
+    if _storage is None or not _storage.is_allowed(email):
+        return _error(
+            f"Access denied for {html.escape(email)}. "
+            "Ask the server administrator to allowlist your email address."
+        )
+
+    # Persist Tori session + issue MCP tokens, redirect Claude to its callback
+    redirect_url = _auth_provider.complete_login(mcp_state, new_refresh, user_id, email)
+    print(f"[tori-login] POST user_id={user_id} email={email} → redirecting to {redirect_url}",
+          file=sys.stderr, flush=True)
+    return RedirectResponse(redirect_url, status_code=302)
+
+
+# ── CLI ────────────────────────────────────────────────────────────────────────
+
+_app = typer.Typer(add_completion=False)
+
+
+@_app.callback(invoke_without_command=True)
 def _cmd(
+    ctx: typer.Context,
     transport: str = typer.Option("stdio", "--transport", "-t", help="Transport: stdio | sse | streamable-http"),
     host: str = typer.Option("127.0.0.1", "--host", help="Bind host (HTTP transports only)"),
     port: int = typer.Option(8000, "--port", "-p", help="Bind port (HTTP transports only)"),
+    base_url: str = typer.Option("", "--base-url", help="Public HTTPS base URL for MCP OAuth (e.g. https://tori.example.com). Required for remote MCP on claude.ai."),
 ) -> None:
+    """Run the Tori.fi MCP server."""
+    if ctx.invoked_subcommand is not None:
+        return  # let the subcommand handle it
+
+    global _auth_provider, _storage
+
     if transport in ("sse", "streamable-http"):
         mcp.settings.host = host
         mcp.settings.port = port
-        if host not in ("127.0.0.1", "localhost", "::1"):
+        # Disable DNS-rebinding protection when:
+        # - binding to a non-loopback address (exposed directly), or
+        # - running behind a reverse proxy (--base-url set), where the Host
+        #   header will be the public domain, not 127.0.0.1
+        if host not in ("127.0.0.1", "localhost", "::1") or base_url:
             mcp.settings.transport_security = None
+
+    if base_url and transport in ("sse", "streamable-http"):
+        from mcp.server.auth.provider import ProviderTokenVerifier
+        from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
+        from .mcp_auth import ToriMCPAuthProvider
+        from .mcp_storage import Storage
+
+        _storage = Storage.open()
+        _auth_provider = ToriMCPAuthProvider(base_url, storage=_storage)
+
+        mcp._auth_server_provider = _auth_provider
+        mcp._token_verifier = ProviderTokenVerifier(_auth_provider)
+        mcp.settings.auth = AuthSettings(
+            issuer_url=base_url,  # type: ignore[arg-type]
+            client_registration_options=ClientRegistrationOptions(enabled=True),
+            resource_server_url=None,
+        )
+
     mcp.run(transport=transport)
+
+
+@_app.command("allow")
+def _allow_cmd(
+    email: str = typer.Argument(..., help="Email address to allow"),
+    note: str = typer.Option("", "--note", "-n", help="Optional note (e.g. the person's name)"),
+) -> None:
+    """Allow an email address to use the remote MCP server."""
+    from .mcp_storage import Storage
+    Storage.open().allow_email(email, note or None)
+    typer.echo(f"Allowed: {email}")
+
+
+@_app.command("revoke")
+def _revoke_cmd(
+    email: str = typer.Argument(..., help="Email address to revoke"),
+) -> None:
+    """Revoke access for an email address and clear their stored session."""
+    from .mcp_storage import Storage
+    user_id = Storage.open().revoke_email(email)
+    # Evict the in-memory client cache if the server happens to be running
+    # in the same process (rare, but harmless to do unconditionally).
+    if user_id is not None:
+        _client_cache.pop(user_id, None)
+    typer.echo(f"Revoked: {email}" + (f" (user_id={user_id})" if user_id else " (was not found)"))
+
+
+@_app.command("list-allowed")
+def _list_allowed_cmd() -> None:
+    """List all email addresses allowed to use the remote MCP server."""
+    from .mcp_storage import Storage
+    import datetime
+    rows = Storage.open().list_allowed()
+    if not rows:
+        typer.echo("No allowed emails.")
+        return
+    for row in rows:
+        added = datetime.datetime.fromtimestamp(row["added_at"]).strftime("%Y-%m-%d")
+        note = f"  # {row['note']}" if row["note"] else ""
+        typer.echo(f"{row['email']:40s}  {added}{note}")
 
 
 def main() -> None:

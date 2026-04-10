@@ -5,3 +5,4 @@ dist/
 build/
 .env
 *.db
+docs/*.md

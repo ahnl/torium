@@ -637,50 +637,177 @@ def fetch_image_base64(url: str) -> str:
 
 _LOGIN_PAGE = """\
 <!doctype html>
-<html lang="en">
+<html lang="fi">
 <head>
   <meta charset="utf-8">
-  <title>Tori MCP server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kirjaudu — torium</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
-    body {{ font-family: system-ui, sans-serif; max-width: 540px; margin: 60px auto; padding: 0 16px; color: #222; }}
-    h1 {{ font-size: 1.3rem; margin-bottom: 4px; }}
-    .step {{ margin: 24px 0 8px; font-weight: 600; }}
-    a.btn, button {{
-      display: inline-block; padding: 10px 20px; border-radius: 6px;
-      background: #e8002d; color: #fff; font-size: 1rem;
-      text-decoration: none; border: none; cursor: pointer;
+    :root {{
+      --red: #e8002d;
+      --red-dark: #c0001f;
+      --red-subtle: #fff0f2;
     }}
-    textarea {{ width: 100%; height: 80px; font-family: monospace; font-size: 0.85rem;
-                padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }}
-    .error {{ background: #fff0f0; border: 1px solid #fbb; border-radius: 4px;
-              padding: 10px 14px; margin-bottom: 16px; color: #900; }}
-    ol {{ padding-left: 1.2em; }}
-    li {{ margin: 6px 0; }}
-    small {{ color: #555; }}
-    code {{ background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }}
+    .card {{
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      padding: 40px 36px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    }}
+    .logo {{
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 20px;
+      color: var(--red);
+      text-decoration: none;
+      display: block;
+      margin-bottom: 24px;
+    }}
+    h1 {{
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 600;
+      font-size: 21px;
+      margin-bottom: 6px;
+    }}
+    .subtitle {{
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }}
+    .step-label {{
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      margin: 22px 0 9px;
+    }}
+    .btn {{
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 7px;
+      background: var(--red);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }}
+    .btn:hover {{ background: var(--red-dark); }}
+    .btn:disabled {{ opacity: 0.65; cursor: not-allowed; }}
+    ol {{
+      padding-left: 1.4em;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.75;
+    }}
+    .notice {{
+      background: var(--red-subtle);
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 13px;
+      margin: 12px 0 16px;
+      color: #555;
+    }}
+    textarea {{
+      width: 100%;
+      height: 76px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      resize: vertical;
+      margin-bottom: 12px;
+      color: #111;
+      line-height: 1.5;
+    }}
+    textarea:focus {{ outline: 2px solid var(--red); border-color: transparent; }}
+    .error {{
+      background: #fff0f0;
+      border: 1px solid #fca5a5;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      color: #900;
+      font-size: 14px;
+    }}
+    code {{
+      background: #f0f0f0;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }}
+    .footer-note {{
+      margin-top: 24px;
+      font-size: 12px;
+      color: #aaa;
+      text-align: center;
+    }}
+    .footer-note a {{ color: #aaa; }}
   </style>
 </head>
 <body>
-  <h1>Tori MCP server</h1>
-  {error}
-  <p class="step">Step 1: Log in to Tori.fi</p>
-  <p><a class="btn" href="{auth_url}" target="_blank" rel="noopener">Log in to Tori.fi &rarr;</a></p>
-  <p class="step">Step 2: Copy the redirect URL from the browser console</p>
-  <small><ol>
-    <li>After clicking the button, log in to Tori.fi in the new tab.</li>
-    <li>The page will loop on <em>Kirjaudutaan</em>. This is expected.</li>
-    <li>Open developer tools in that tab: <strong>F12</strong> on Windows/Linux, <strong>Cmd+Option+I</strong> on Mac.</li>
-    <li>Go to the <strong>Console</strong> tab and find the URL starting with <code>fi.tori.www</code>.</li>
-    <li>Copy that full URL and paste it below.</li>
-  </ol></small>
-  <p><small><strong>Do this quickly.</strong> The code in the URL expires in 30&ndash;60 seconds.</small></p>
-  <form method="POST">
-    <input type="hidden" name="state" value="{state}">
-    <p><textarea name="callback_url" placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&amp;state=..." required></textarea></p>
-    <button type="submit" onclick="this.disabled=true;this.textContent='Connecting…';this.form.submit()">Connect</button>
-  </form>
+  <div class="card">
+    <a class="logo" href="/">torium</a>
+    <h1>Kirjaudu Tori.fi-tilillesi</h1>
+    <p class="subtitle">Yhdistä Tori.fi-tilisi Claude-integraatioon.</p>
+
+    {error}
+
+    <p class="step-label">Vaihe 1 — Avaa Tori.fi-kirjautuminen</p>
+    <a class="btn" href="{auth_url}" target="_blank" rel="noopener">Kirjaudu Tori.fi:hin &rarr;</a>
+
+    <p class="step-label">Vaihe 2 — Kopioi uudelleenohjaus-URL</p>
+    <ol>
+      <li>Kirjaudu sisään avautuneessa välilehdessä.</li>
+      <li>Sivu jää lataamaan tai näyttää virheen &mdash; tämä on normaalia.</li>
+      <li>Avaa kehittäjätyökalut: <strong>F12</strong> (Win/Linux) tai <strong>Cmd+Option+I</strong> (Mac).</li>
+      <li>Mene <strong>Console</strong>-välilehdelle ja etsi URL, joka alkaa <code>fi.tori.www</code>.</li>
+      <li>Kopioi koko URL ja liitä se alla olevaan kenttään.</li>
+    </ol>
+    <div class="notice">Toimi nopeasti &mdash; URL vanhenee 30&ndash;60 sekunnissa.</div>
+
+    <form method="POST">
+      <input type="hidden" name="state" value="{state}">
+      <textarea name="callback_url"
+        placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&state=..."
+        required></textarea>
+      <button class="btn" type="submit"
+        onclick="this.disabled=true;this.textContent='Yhdistetään\u2026';this.form.submit()">
+        Yhdistä
+      </button>
+    </form>
+
+    <p class="footer-note">
+      <a href="https://github.com/ahnl/torium">torium</a> &mdash;
+      ei virallinen Tori.fi-tuote
+    </p>
+  </div>
 </body>
 </html>
 """

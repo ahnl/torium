@@ -4,12 +4,16 @@ import '../styles/global.css';
 export interface Props {
   title: string;
   description?: string;
+  ogImage?: string;
 }
 
 const {
   title,
-  description = 'Tori.fi tekoälysi käyttöön. torium on avoimen lähdekoodin liitin, joka yhdistää tekoälysi Tori.fi-tiliisi.',
+  description = 'Tori.fi tekoälysi käyttöön. Selaa, hallitse ja vastaa Torin ilmoituksiin luonnollisella kielellä.',
+  ogImage = '/og-image.png',
 } = Astro.props;
+
+const canonicalUrl = Astro.url.origin;
 ---
 <!doctype html>
 <html lang="fi">
@@ -17,6 +21,17 @@ const {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:title" content={`${title} · torium`} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={`${canonicalUrl}${ogImage}`} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={`${title} · torium`} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={`${canonicalUrl}${ogImage}`} />
   <link rel="icon" type="image/png" href="/favicon.png" />
   <title>{title} · torium</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />

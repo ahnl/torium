@@ -25,9 +25,10 @@ const FEATURES = [
 
 export default function Features() {
   return (
-    <section id="ominaisuudet" style={{ padding: '96px 24px', background: 'var(--torium-red-subtle)' }}>
+    <section style={{ padding: '96px 24px', background: 'var(--torium-red-subtle)' }}>
       <div style={{ maxWidth: 1120, margin: '0 auto' }}>
         <motion.h2
+          id="ominaisuudet"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

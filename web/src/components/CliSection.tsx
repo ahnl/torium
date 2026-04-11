@@ -56,9 +56,10 @@ function CodeBlock({ code }: { code: string }) {
 
 export default function CliSection() {
   return (
-    <section id="cli" style={{ padding: '96px 24px', background: '#f5f5f5' }}>
+    <section style={{ padding: '96px 24px', background: '#f5f5f5' }}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <motion.h2
+          id="cli"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

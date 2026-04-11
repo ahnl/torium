@@ -33,7 +33,7 @@ function CodeBlock({ code }: { code: string }) {
       borderRadius: 8, padding: '14px 18px',
       fontFamily: 'JetBrains Mono, monospace',
       fontSize: 13, overflowX: 'auto', margin: '10px 0 0',
-      lineHeight: 1.6,
+      lineHeight: 1.6, whiteSpace: 'pre', wordBreak: 'normal',
     }}>
       <code>{code}</code>
     </pre>
@@ -51,18 +51,18 @@ function CopyField({ label, value }: { label: string; value: string }) {
   }
 
   return (
-    <div style={{
+    <div className="copy-field-row" style={{
       display: 'flex', alignItems: 'center',
       padding: '10px 0',
       borderBottom: '1px solid #ebebeb',
-      gap: 12,
+      gap: 12, flexWrap: 'wrap',
     }}>
-      <span style={{ color: '#888', fontSize: 13, width: 160, flexShrink: 0 }}>{label}</span>
-      <code style={{
+      <span className="copy-field-label" style={{ color: '#888', fontSize: 13, width: 160, flexShrink: 0 }}>{label}</span>
+      <code className="copy-field-value" style={{
         background: '#1a1a1a', color: '#e8e8e8',
         padding: '3px 10px', borderRadius: 5,
         fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-        flex: 1,
+        flex: 1, minWidth: 0, wordBreak: 'break-all',
       }}>{value}</code>
       <button
         onClick={handleCopy}
@@ -92,7 +92,7 @@ function ConnectorFields() {
         background: '#f8f8f8', border: '1px solid #e5e5e5',
         borderRadius: 8, padding: '0 16px',
       }}>
-        <CopyField label="Nimi" value="Torium" />
+        <CopyField label="Nimi" value="Tori.fi" />
         <div style={{ borderBottom: 'none' }}>
           <CopyField label="Remote MCP server URL" value="https://torium.fi/mcp" />
         </div>
@@ -137,9 +137,17 @@ export default function McpQuickStart() {
   ];
 
   return (
-    <section id="aloita" style={{ padding: '96px 24px' }}>
+    <>
+    <style>{`
+      @media (max-width: 540px) {
+        .copy-field-label { width: 100% !important; }
+        .copy-field-value { flex: unset !important; width: 100% !important; min-width: 0; }
+      }
+    `}</style>
+    <section style={{ padding: '96px 24px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <motion.h2
+          id="aloita"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -177,7 +185,7 @@ export default function McpQuickStart() {
               }}>
                 {step.n}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <h3 style={{ margin: 0 }}>{step.title}</h3>
                 {step.content}
               </div>
@@ -185,15 +193,40 @@ export default function McpQuickStart() {
           ))}
         </div>
 
-        {/* Self-hosting collapsible */}
+        {/* Collapsibles: video + self-hosting */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4, delay: 0.3 }}
+          transition={{ duration: 0.4, delay: 0.28 }}
           style={{ marginTop: 56 }}
         >
-          <details style={{ borderTop: '1px solid #e5e5e5', paddingTop: 24 }}>
+          <details style={{ borderTop: '1px solid #e5e5e5', padding: '16px 0' }}>
+            <summary style={{
+              cursor: 'pointer', fontSize: 15, fontWeight: 500,
+              color: '#444', userSelect: 'none', listStyle: 'none',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 20, height: 20, borderRadius: '50%',
+                border: '1px solid #ccc', color: '#888', fontSize: 11, flexShrink: 0,
+              }}>▶</span>
+              Ohjevideo
+            </summary>
+            <div style={{ marginTop: 20 }}>
+              <video
+                src="/setup.mp4"
+                controls
+                style={{
+                  width: '100%', borderRadius: 10,
+                  background: '#000', display: 'block',
+                }}
+              />
+            </div>
+          </details>
+
+          <details style={{ borderTop: '1px solid #e5e5e5', padding: '16px 0' }}>
             <summary style={{
               cursor: 'pointer', fontSize: 15, fontWeight: 500,
               color: '#444', userSelect: 'none', listStyle: 'none',
@@ -218,7 +251,7 @@ export default function McpQuickStart() {
                   }}>
                     {step.n}
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ margin: 0, fontSize: 17 }}>{step.title}</h3>
                     {step.note && <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14 }}>{step.note}</p>}
                     {step.code && <CodeBlock code={step.code} />}
@@ -230,5 +263,7 @@ export default function McpQuickStart() {
         </motion.div>
       </div>
     </section>
+
+    </>
   );
 }

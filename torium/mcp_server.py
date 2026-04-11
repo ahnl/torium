@@ -895,15 +895,33 @@ async def _delete_request(request: Request):
     if not email or "@" not in email:
         return JSONResponse({"error": "invalid_email"}, status_code=400)
 
-    if not _storage.email_has_data(email):
-        return JSONResponse({"error": "not_found"}, status_code=404)
-
-    token = _storage.create_deletion_token(email)
-    base_url = os.environ.get("TORIUM_BASE_URL", "https://torium.fi")
-    confirm_url = f"{base_url}/delete-confirm?token={token}"
-
     import resend
     resend.api_key = os.environ.get("RESEND_API_KEY", "")
+    base_url = os.environ.get("TORIUM_BASE_URL", "https://torium.fi")
+
+    if not _storage.email_has_data(email):
+        # Always respond ok — don't reveal whether the account exists
+        try:
+            resend.Emails.send({
+                "from": "torium <torium@torium.fi>",
+                "to": [email],
+                "subject": "Tietojen poistopyyntö — torium",
+                "html": """
+<p>Hei,</p>
+<p>Saimme pyynnön poistaa toriumiin liitetyt tietosi, mutta tällä sähköpostiosoitteella
+ei löydy tallennettuja tietoja palvelimeltamme.</p>
+<p>Jos kirjauduit palveluun eri sähköpostiosoitteella, lähetä pyyntö uudelleen sillä osoitteella.</p>
+<hr>
+<p style="color:#888;font-size:12px;">torium — ei virallinen Tori.fi-tuote</p>
+""",
+            })
+        except Exception as exc:
+            print(f"[delete-request] Resend error (not found): {exc}", file=sys.stderr)
+        return JSONResponse({"ok": True})
+
+    token = _storage.create_deletion_token(email)
+    confirm_url = f"{base_url}/delete-confirm?token={token}"
+
     try:
         resend.Emails.send({
             "from": "torium <torium@torium.fi>",

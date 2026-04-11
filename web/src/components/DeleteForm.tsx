@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-type State = 'idle' | 'loading' | 'success' | 'not_found' | 'error';
+type State = 'idle' | 'loading' | 'success' | 'error';
 
 export default function DeleteForm() {
   const [email, setEmail] = useState('');
@@ -19,8 +19,6 @@ export default function DeleteForm() {
       const data = await res.json();
       if (data.ok) {
         setState('success');
-      } else if (data.error === 'not_found') {
-        setState('not_found');
       } else {
         setErrorMsg(data.error || 'Tuntematon virhe.');
         setState('error');
@@ -36,8 +34,8 @@ export default function DeleteForm() {
       <div style={{ background: '#f0fff4', border: '1px solid #86efac', borderRadius: 8, padding: '16px 20px', maxWidth: 480 }}>
         <strong>Sähköposti lähetetty!</strong>
         <p style={{ margin: '8px 0 0', color: '#555', fontSize: 15 }}>
-          Lähetimme vahvistusviestin osoitteeseen <strong>{email}</strong>.
-          Klikkaa linkkiä vahvistaaksesi tietojen poistamisen. Linkki on voimassa 24 tuntia.
+          Lähetimme viestin osoitteeseen <strong>{email}</strong>.
+          Jos tiedot löytyvät palvelimelta, viesti sisältää vahvistuslinkin. Linkki on voimassa 24 tuntia.
         </p>
       </div>
     );
@@ -45,11 +43,6 @@ export default function DeleteForm() {
 
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
-      {state === 'not_found' && (
-        <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#555' }}>
-          Kyseisellä sähköpostiosoitteella ei löydy tietoja palvelimelta.
-        </div>
-      )}
       {state === 'error' && (
         <div style={{ background: 'var(--torium-red-subtle)', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#900' }}>
           {errorMsg}

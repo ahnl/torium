@@ -28,6 +28,7 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
 import base64
 import html
 import json
+import os
 import sys
 import urllib.parse
 from typing import Optional
@@ -683,6 +684,26 @@ _LOGIN_PAGE = """\
 </body>
 </html>
 """
+
+
+_GIT_COMMIT = os.environ.get("GIT_COMMIT", "unknown")
+
+
+@mcp.custom_route("/", methods=["GET"])
+async def _frontpage(request: Request) -> HTMLResponse:
+    return HTMLResponse(f"""\
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>torium</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+</head>
+<body>
+  <p>commit: {_GIT_COMMIT}</p>
+</body>
+</html>
+""")
 
 
 @mcp.custom_route("/favicon.ico", methods=["GET"])

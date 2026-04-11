@@ -8,41 +8,43 @@ const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month:
     <main style="flex: 1; max-width: 720px; margin: 0 auto; padding: 56px 24px 80px;">
       <a href="/" style="color: var(--torium-red); text-decoration: none; font-size: 14px; font-weight: 500;">← Etusivulle</a>
 
-      <h1 style="margin-top: 28px; margin-bottom: 6px;">Tietosuojaseloste</h1>
+      <h1 style="margin-top: 28px; margin-bottom: 6px;">Tietosuoja</h1>
       <p style="color: #888; font-size: 14px; margin-bottom: 40px;">Päivitetty {updated}</p>
 
-      <h2>Rekisterinpitäjä</h2>
-      <p>torium-palvelu (<a href="https://torium.fi" style="color: var(--torium-red);">torium.fi</a>).
-      Yhteystiedot: <a href="https://github.com/ahnl/torium/issues" style="color: var(--torium-red);">GitHub Issues</a>.</p>
+      <p>Tässä tietosuojaselosteessa informoimme henkilötietojen käsittelystä yleisen tietosuoja-asetuksen (EU) 2016/679 mukaisesti.</p>
+
+      <h2>Mikä on henkilötietojen käsittelyn peruste ja tarkoitus?</h2>
+      <p>Henkilötietojen käsittely on tarpeen, jotta voimme tarjota käyttäjille MCP-integraatiota Tori.fi:n liittämiseksi käyttäjän valitsemaan tekoälysovellukseen. Tietoja käytetään yksinomaan Tori.fi:n rajapintakutsujen suorittamiseen MCP-integraation kautta. Käsittelyn oikeusperustana on rekisteröidyn suostumus. Varmistamme, että käsittely perustuu aina lakiin ja noudattaa tietosuojaperiaatteita.</p>
 
       <h2>Mitä tietoja keräämme?</h2>
-      <p>Kun kirjaudut palveluun Tori.fi-tunnuksillasi, tallennamme:</p>
+      <p>Keräämme rekisteröidyistä Tori.fi:n käyttäjän uniikin tunnisteen, sähköpostiosoitteen ja tunnistautumisavaimen. Tunnistautumisavain on voimassa puoli vuotta kerrallaan.</p>
+
+      <h2>Kuinka kauan säilytämme henkilötietoja?</h2>
+      <p>Emme säilytä henkilötietojasi pidempään kuin on välttämätöntä käyttötarkoituksen kannalta. Tietosi poistetaan sinä ajankohtana, kun tallentamamme tunnistautumisavain vanhenee. Tunnistautumisavain uusiutuu käyttäjän puolesta, jos MCP-integraatiota on käytetty viimeisen puolen vuoden aikana.</p>
+
+      <h2>Miten pidämme henkilötietosi turvassa?</h2>
+      <p>Käsittelemme henkilötietoja tavalla, jolla pyritään varmistamaan henkilötietojen asianmukainen turvallisuus, mukaan lukien suojaaminen luvattomalta käsittelyltä sekä vahingossa tapahtuvalta häviämiseltä, tuhoutumiselta tai vahingoittumiselta.</p>
+      <p>Käytämme asianmukaisia teknisiä ja organisatorisia suojatoimia tämän tavoitteen varmistamiseksi, mukaan lukien palomuurien, salaustekniikoiden ja turvallisten laitetilojen käyttö, asianmukainen kulunvalvonta, tietojärjestelmien käyttäjätunnusten huolellinen hallinta sekä henkilötietojen käsittelyyn osallistuvan henkilöstön ohjeistaminen.</p>
+
+      <h2>Siirrämmekö henkilötietoja kolmansiin maihin?</h2>
+      <p>Henkilötietoja ei siirretä EU:n ja Euroopan talousalueen (ETA) ulkopuolelle.</p>
+
+      <h2>Mitkä ovat henkilötietojasi koskevat oikeudet?</h2>
+      <p>Voit pyytää kaikkien tietojesi välitöntä poistamista milloin tahansa. <a href="/delete" style="color: var(--torium-red);">Poista tietoni →</a></p>
+      <p>Voit toteuttaa edellä kuvatut oikeutesi lähettämällä sähköpostia alla mainittuun sähköpostiosoitteeseen. Tarvittaessa pyydämme sinua todentamaan henkilöllisyytesi.</p>
+      <p>Rekisteröidyillä on seuraavia oikeuksia omien tietojensa käsittelyyn liittyen:</p>
       <ul>
-        <li><strong>Sähköpostiosoitteesi</strong> käyttäjän tunnistamiseen</li>
-        <li><strong>Tori.fi-päivitystokenin</strong> API-pyyntöjen suorittamiseen puolestasi</li>
-        <li><strong>MCP-pääsytokenin ja -päivitystokenin</strong> tekoälyistunnon ylläpitoon</li>
-      </ul>
-      <p>Emme kerää analytiikkatietoja, evästeitä, selaushistoriaa emmekä muita henkilötietoja. Emme myy tietojasi kolmansille osapuolille.</p>
-
-      <h2>Miten tietoja käytetään?</h2>
-      <p>Tietoja käytetään yksinomaan Tori.fi API -pyyntöjen suorittamiseen Claude-integraation kautta. Tokenit tallennetaan salattuun SQLite-tietokantaan palvelimella.</p>
-
-      <h2>Säilytysaika</h2>
-      <ul>
-        <li>MCP-pääsytokenit: vanhenevat 1 tunnin kuluttua</li>
-        <li>MCP-päivitystokenit: vanhenevat 180 päivän kuluttua</li>
-        <li>Tori.fi-päivitystoken ja sähköposti: säilytetään toistaiseksi tai kunnes pyydät poistoa</li>
+        <li>oikeus tutustua tietoihin</li>
+        <li>oikeus oikaista tiedot</li>
+        <li>oikeus poistaa tiedot ja tulla unohdetuksi</li>
+        <li>oikeus rajoittaa tietojen käsittelyä</li>
+        <li>oikeus siirtää tiedot järjestelmästä toiseen</li>
+        <li>oikeus vastustaa tietojen käsittelyä</li>
+        <li>oikeus tehdä valitus valvontaviranomaiselle</li>
       </ul>
 
-      <h2>Tietojesi poistaminen</h2>
-      <p>Voit pyytää kaikkien tietojesi välitöntä poistamista milloin tahansa.
-      <a href="/delete" style="color: var(--torium-red);">Poista tietoni →</a></p>
-
-      <h2>Kolmannet osapuolet</h2>
-      <p>Palvelu käyttää Tori.fi / Schibsted -kirjautumista tunnistautumiseen. Emme hallinnoi Schibstedin tai Tori.fi:n tietosuojakäytäntöjä. Katso <a href="https://info.tori.fi/tietosuoja/" style="color: var(--torium-red);" target="_blank" rel="noopener">Tori.fi:n tietosuojaseloste</a>.</p>
-
-      <h2>Vastuuvapauslauseke</h2>
-      <p>torium ei ole Tori.fi:n tai Schibstedin virallinen, hyväksymä tai sponsoroima tuote. Se on itsenäisesti kehitetty avoimen lähdekoodin työkalu.</p>
+      <h2>Keneen voit olla yhteydessä henkilötietojasi koskevissa kysymyksissä?</h2>
+      <p>Sähköposti: <a href="mailto:torium@torium.fi" style="color: var(--torium-red);">torium@torium.fi</a></p>
     </main>
     <Footer />
   </div>

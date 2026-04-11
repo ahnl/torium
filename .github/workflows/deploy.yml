@@ -14,18 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Build Astro static site ────────────────────────────────────────────
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-
-      - name: Build Astro site
-        working-directory: web
-        run: npm ci && npm run build
-
-      # ── Build and push Docker image (Python MCP server) ───────────────────
       - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
@@ -36,6 +24,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ── Build and push Docker image (Python MCP server) ───────────────────
       - uses: docker/build-push-action@v5
         with:
           context: .
@@ -43,5 +32,16 @@ jobs:
           platforms: linux/arm64
           tags: ghcr.io/ahnl/torium:latest
           build-args: GIT_COMMIT=${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=mcp
+          cache-to: type=gha,mode=max,scope=mcp
+
+      # ── Build and push Docker image (Astro web frontend) ──────────────────
+      - uses: docker/build-push-action@v5
+        with:
+          context: web
+          file: web/Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: ghcr.io/ahnl/torium-web:latest
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

@@ -1,0 +1,33 @@
+services:
+  torium-mcp:
+    image: ghcr.io/ahnl/torium:latest
+    restart: unless-stopped
+    command: >
+      torium-mcp --transport streamable-http
+                 --host 0.0.0.0
+                 --port 5001
+                 --base-url https://torium.fi
+    environment:
+      - TORIUM_OPEN=1
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - TORIUM_BASE_URL=https://torium.fi
+    volumes:
+      - ./data:/root/.config/torium
+
+  torium-web:
+    image: ghcr.io/ahnl/torium-web:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - torium-mcp
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /run/user/1002/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=60
+      - DOCKER_API_VERSION=1.44
+    command: torium-torium-mcp-1 torium-torium-web-1

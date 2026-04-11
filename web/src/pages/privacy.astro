@@ -1,0 +1,66 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Footer from '../components/Footer.astro';
+const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+<Layout title="Tietosuojaseloste" description="toriumin tietosuojaseloste — mitä tietoja keräämme ja miten niitä käytetään">
+  <div style="min-height: 100vh; display: flex; flex-direction: column;">
+    <main style="flex: 1; max-width: 720px; margin: 0 auto; padding: 56px 24px 80px;">
+      <a href="/" style="color: var(--torium-red); text-decoration: none; font-size: 14px; font-weight: 500;">← Etusivulle</a>
+
+      <h1 style="margin-top: 28px; margin-bottom: 6px;">Tietosuojaseloste</h1>
+      <p style="color: #888; font-size: 14px; margin-bottom: 40px;">Päivitetty {updated}</p>
+
+      <h2>Rekisterinpitäjä</h2>
+      <p>torium-palvelu (<a href="https://torium.fi" style="color: var(--torium-red);">torium.fi</a>).
+      Yhteystiedot: <a href="https://github.com/ahnl/torium/issues" style="color: var(--torium-red);">GitHub Issues</a>.</p>
+
+      <h2>Mitä tietoja keräämme?</h2>
+      <p>Kun kirjaudut palveluun Tori.fi-tunnuksillasi, tallennamme:</p>
+      <ul>
+        <li><strong>Sähköpostiosoitteesi</strong> — käyttäjän tunnistamiseen</li>
+        <li><strong>Tori.fi-päivitystokenin</strong> — API-pyyntöjen suorittamiseen puolestasi</li>
+        <li><strong>MCP-pääsytokenin ja -päivitystokenin</strong> — Claude.ai-istunnon ylläpitoon</li>
+      </ul>
+      <p>Emme kerää analytiikkatietoja, evästeitä, selaushistoriaa emmekä muita henkilötietoja. Emme myy tietojasi kolmansille osapuolille.</p>
+
+      <h2>Miten tietoja käytetään?</h2>
+      <p>Tietoja käytetään yksinomaan Tori.fi API -pyyntöjen suorittamiseen Claude-integraation kautta. Tokenit tallennetaan salattuun SQLite-tietokantaan palvelimella.</p>
+
+      <h2>Säilytysaika</h2>
+      <ul>
+        <li>MCP-pääsytokenit: vanhenevat 1 tunnin kuluttua</li>
+        <li>MCP-päivitystokenit: vanhenevat 180 päivän kuluttua</li>
+        <li>Tori.fi-päivitystoken ja sähköposti: säilytetään toistaiseksi tai kunnes pyydät poistoa</li>
+      </ul>
+
+      <h2>Tietojesi poistaminen</h2>
+      <p>Voit pyytää kaikkien tietojesi välitöntä poistamista milloin tahansa.
+      <a href="/delete" style="color: var(--torium-red);">Poista tietoni →</a></p>
+
+      <h2>Kolmannet osapuolet</h2>
+      <p>Palvelu käyttää Tori.fi / Schibsted -kirjautumista tunnistautumiseen. Emme hallinnoi Schibstedin tai Tori.fi:n tietosuojakäytäntöjä. Katso <a href="https://info.tori.fi/tietosuoja/" style="color: var(--torium-red);" target="_blank" rel="noopener">Tori.fi:n tietosuojaseloste</a>.</p>
+
+      <h2>Vastuuvapauslauseke</h2>
+      <p>torium ei ole Tori.fi:n tai Schibstedin virallinen, hyväksymä tai sponsoroima tuote. Se on itsenäisesti kehitetty avoimen lähdekoodin työkalu.</p>
+    </main>
+    <Footer />
+  </div>
+</Layout>
+
+<style>
+  main h2 {
+    margin-top: 36px;
+    margin-bottom: 10px;
+  }
+  main p, main ul {
+    color: #444;
+    line-height: 1.7;
+  }
+  main ul {
+    padding-left: 1.4em;
+  }
+  main li {
+    margin: 6px 0;
+  }
+</style>

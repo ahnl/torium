@@ -13,6 +13,7 @@ Tables:
 
 import json
 import os
+import secrets
 import sqlite3
 import threading
 import time
@@ -242,7 +243,6 @@ class Storage:
 
     def create_deletion_token(self, email: str) -> str:
         """Create a 24-hour single-use deletion token for the given email."""
-        import secrets, time
         token = secrets.token_urlsafe(32)
         with self._lock:
             with self._conn:
@@ -254,7 +254,6 @@ class Storage:
 
     def consume_deletion_token(self, token: str) -> Optional[str]:
         """Return email if token is valid, unused, and <24h old. Marks it used. Returns None if invalid."""
-        import time
         cutoff = time.time() - 86400
         with self._lock:
             row = self._conn.execute(

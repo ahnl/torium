@@ -885,10 +885,9 @@ async def _delete_request(request: Request):
     if _storage is None:
         return JSONResponse({"error": "not_configured"}, status_code=503)
 
-    import json as _json
     try:
         body = await request.body()
-        data = _json.loads(body)
+        data = json.loads(body)
         email = str(data.get("email", "")).strip().lower()
     except Exception:
         return JSONResponse({"error": "bad_request"}, status_code=400)
@@ -907,7 +906,7 @@ async def _delete_request(request: Request):
     resend.api_key = os.environ.get("RESEND_API_KEY", "")
     try:
         resend.Emails.send({
-            "from": "torium <noreply@torium.fi>",
+            "from": "torium <torium@torium.fi>",
             "to": [email],
             "subject": "Vahvista tietojen poistaminen — torium",
             "html": f"""

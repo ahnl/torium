@@ -15,6 +15,14 @@ const year = new Date().getFullYear();
       <strong>Vastuuvapauslauseke:</strong> Tämä projekti ei ole Tori.fi:n tai Schibstedin virallinen, hyväksymä tai sponsoroima tuote.
       Se on itsenäisesti kehitetty avoimen lähdekoodin työkalu, eikä sillä ole yhteyttä kyseisiin yrityksiin.
     </p>
-    <p style="font-size: 13px; color: #aaa; margin: 0;">© {year} torium · MIT-lisenssi</p>
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-top: 16px;">
+      <p style="font-size: 13px; color: #aaa; margin: 0;">© {year} torium</p>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 12px; color: #bbb; letter-spacing: 0.03em;">Sponsori</span>
+        <a href="https://lumea.fi" target="_blank" rel="noopener noreferrer" aria-label="Lumea">
+          <img src="/lumea.svg" alt="Lumea" style="height: 16px; width: auto; display: block; opacity: 0.75;" />
+        </a>
+      </div>
+    </div>
   </div>
 </footer>

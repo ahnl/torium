@@ -4,22 +4,22 @@ const FEATURES = [
   {
     icon: '🤖',
     title: 'MCP-integraatio',
-    desc: 'Yhdistä Claude suoraan Tori.fi-tiliisi. Selaa ilmoituksia, vastaa viesteihin ja tee toimenpiteitä luonnollisella kielellä.',
+    desc: 'Yhdistä tekoäly suoraan Tori.fi-tiliisi. Selaa ilmoituksia, vastaa viesteihin ja tee toimenpiteitä luonnollisella kielellä.',
   },
   {
     icon: '🔍',
     title: 'Älykkäät haut',
-    desc: 'Hae ilmoituksia sijainnin, hinnan ja kategorian mukaan. Claude suodattaa ja vertailee tuloksia puolestasi.',
+    desc: 'Hae ilmoituksia sijainnin, hinnan ja kategorian mukaan. Tekoäly suodattaa ja vertailee tuloksia puolestasi.',
   },
   {
     icon: '🖼️',
     title: 'Kuvien tarkistus',
-    desc: 'Claude näkee ilmoitusten kuvat ja tunnistaa kunnon, mallin, varusteet ja mahdolliset viat.',
+    desc: 'Tekoäly näkee ilmoitusten kuvat ja tunnistaa niistä kunnon, mallin, varusteet ja mahdolliset viat.',
   },
   {
     icon: '💬',
     title: 'Viestit ja hakuvahti',
-    desc: 'Lue ja lähetä viestejä sekä hallinnoi hakuvahteja suoraan Claude-keskustelussa.',
+    desc: 'Lue ja lähetä viestejä sekä hallinnoi hakuvahteja suoraan tekoälykeskustelussa.',
   },
 ];
 

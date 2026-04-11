@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 const NAV_LINKS = [
   { href: '#ominaisuudet', label: 'Ominaisuudet' },
   { href: '#aloita', label: 'Aloita' },
-  { href: '#cli', label: 'CLI' },
+  { href: '#cli', label: 'CLI & kirjasto' },
   { href: 'https://github.com/ahnl/torium', label: 'GitHub', external: true },
 ];
 
@@ -40,16 +40,14 @@ export default function Navbar() {
             </a>
           ))}
           <a
-            href="https://claude.ai/settings/connectors"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#aloita"
             style={{
               background: 'var(--torium-red)', color: '#fff',
               padding: '8px 18px', borderRadius: 6,
               textDecoration: 'none', fontSize: 15, fontWeight: 500,
             }}
           >
-            Lisää Claude.ai:hin
+            Aloita
           </a>
         </nav>
       </div>

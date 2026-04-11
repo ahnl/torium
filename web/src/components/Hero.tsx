@@ -12,21 +12,19 @@ export default function Hero() {
           Tori.fi tekoälysi käyttöön
         </h1>
         <p style={{ fontSize: 20, color: '#555', maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.6 }}>
-          torium on avoimen lähdekoodin MCP-palvelin, jonka avulla Claude voi
+          torium on avoimen lähdekoodin MCP-palvelin, jonka avulla tekoälysi voi
           selata, hallita ja vastata Tori.fi-ilmoituksiisi.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <a
-            href="https://claude.ai/settings/connectors"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#aloita"
             style={{
               background: 'var(--torium-red)', color: '#fff',
               padding: '13px 28px', borderRadius: 8,
               textDecoration: 'none', fontSize: 16, fontWeight: 500,
             }}
           >
-            Lisää Claude.ai:hin →
+            Aloita →
           </a>
           <a
             href="https://github.com/ahnl/torium"

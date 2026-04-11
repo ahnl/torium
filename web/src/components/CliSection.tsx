@@ -83,9 +83,23 @@ export default function CliSection() {
           transition={{ duration: 0.4, delay: 0.15 }}
         >
           <Tabs defaultValue="cli">
-            <TabsList>
-              <TabsTrigger value="cli">CLI</TabsTrigger>
-              <TabsTrigger value="python">Python-kirjasto</TabsTrigger>
+            <TabsList style={{
+              background: '#e8e8e8', padding: 4,
+              borderRadius: 10, gap: 2, height: 'auto',
+              display: 'inline-flex',
+            }}>
+              <TabsTrigger
+                value="cli"
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600 }}
+              >
+                <span style={{ marginRight: 6 }}>$</span> CLI
+              </TabsTrigger>
+              <TabsTrigger
+                value="python"
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600 }}
+              >
+                <span style={{ marginRight: 6 }}>🐍</span> Python-kirjasto
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="cli" style={{ marginTop: 16 }}>
               <CodeBlock code={CLI_EXAMPLES} />

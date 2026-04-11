@@ -8,3 +8,4 @@ build/
 docs/*.md
 uv.lock
 .DS_Store
+.worktrees/

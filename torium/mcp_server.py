@@ -905,14 +905,14 @@ async def _delete_request(request: Request):
             resend.Emails.send({
                 "from": "torium <torium@torium.fi>",
                 "to": [email],
-                "subject": "Tietojen poistopyyntö — torium",
+                "subject": "Vahvista tietojen poistaminen",
                 "html": """
 <p>Hei,</p>
 <p>Saimme pyynnön poistaa toriumiin liitetyt tietosi, mutta tällä sähköpostiosoitteella
 ei löydy tallennettuja tietoja palvelimeltamme.</p>
 <p>Jos kirjauduit palveluun eri sähköpostiosoitteella, lähetä pyyntö uudelleen sillä osoitteella.</p>
 <hr>
-<p style="color:#888;font-size:12px;">torium — ei virallinen Tori.fi-tuote</p>
+<p style="color:#888;font-size:12px;"><a href="https://torium.fi" style="color:#888;">torium.fi</a></p>
 """,
             })
         except Exception as exc:
@@ -926,14 +926,14 @@ ei löydy tallennettuja tietoja palvelimeltamme.</p>
         resend.Emails.send({
             "from": "torium <torium@torium.fi>",
             "to": [email],
-            "subject": "Vahvista tietojen poistaminen — torium",
+            "subject": "Vahvista tietojen poistaminen",
             "html": f"""
 <p>Hei,</p>
 <p>Pyysit kaikkien toriumiin tallennettujen tietojesi poistamista.</p>
 <p><a href="{confirm_url}">Vahvista poistaminen klikkaamalla tätä linkkiä</a></p>
 <p>Linkki on voimassa 24 tuntia. Jos et pyytänyt tätä, voit jättää viestin huomiotta.</p>
 <hr>
-<p style="color:#888;font-size:12px;">torium — ei virallinen Tori.fi-tuote</p>
+<p style="color:#888;font-size:12px;"><a href="https://torium.fi" style="color:#888;">torium.fi</a></p>
 """,
         })
     except Exception as exc:

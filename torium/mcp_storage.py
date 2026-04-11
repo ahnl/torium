@@ -1,7 +1,7 @@
 """
 SQLite-backed storage for torium-mcp multi-tenant state.
 
-DB path: ~/.config/tori/mcp.db
+DB path: ~/.config/torium/mcp.db
 
 Tables:
   allowlist          — email addresses permitted to use the remote server
@@ -18,7 +18,7 @@ import threading
 import time
 from typing import Optional
 
-DB_PATH = os.path.expanduser("~/.config/tori/mcp.db")
+DB_PATH = os.path.expanduser("~/.config/torium/mcp.db")
 
 _CREATE_SCHEMA = """
 PRAGMA journal_mode=WAL;

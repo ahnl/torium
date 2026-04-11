@@ -28,7 +28,7 @@ On Windows/Linux, after login the browser will show an infinite loading spinner 
 
 <img src="docs/windows-oauth-instruction.png" width="800" alt="Windows OAuth instruction showing developer console and terminal" />
 
-Credentials will be saved to `~/.config/tori/credentials.json`. Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
+Credentials will be saved to `~/.config/torium/credentials.json`. Alternatively, set `TORI_REFRESH_TOKEN` in your environment. The MCP server will use it directly, no credentials file needed.
 
 **3. Add to Claude Desktop:**
 
@@ -114,7 +114,7 @@ torium messages read <n>             # show thread (use row number from the list
 torium messages send <n> "text"      # send a message
 ```
 
-Row numbers are cached at `~/.cache/tori/conversations.json`. Re-run `torium messages` to refresh.
+Row numbers are cached at `~/.cache/torium/conversations.json`. Re-run `torium messages` to refresh.
 
 ### Show listing
 
@@ -183,7 +183,7 @@ Claude Desktop's `web_fetch` cannot load URLs that originate from MCP tool respo
 ```python
 from torium import ToriClient
 
-client = ToriClient()                        # reads ~/.config/tori/credentials.json
+client = ToriClient()                        # reads ~/.config/torium/credentials.json
 client = ToriClient(refresh_token="eyJ...")  # explicit token
 
 # Listings
@@ -236,7 +236,7 @@ The `--base-url` must be the public HTTPS URL that claude.ai can reach (e.g. via
 
 Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted login, then copy the `fi.tori.www...` redirect URL from the browser console and paste it into the form. After that, Claude has a 180-day session — no further logins needed until it expires.
 
-> Each user's Tori credentials are stored separately in SQLite (`~/.config/tori/mcp.db`). The local `~/.config/tori/credentials.json` file used by stdio mode is never touched by the remote server.
+> Each user's Tori credentials are stored separately in SQLite (`~/.config/torium/mcp.db`). The local `~/.config/torium/credentials.json` file used by stdio mode is never touched by the remote server.
 
 ---
 

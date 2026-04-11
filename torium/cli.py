@@ -78,7 +78,7 @@ def _ad_type_from_title(title: str) -> str:
 def auth_setup(
     manual: bool = typer.Option(False, "--manual", help="Paste redirect URL manually (required on Windows/Linux if auto-capture fails)"),
 ):
-    """One-time browser OAuth flow. Saves refresh token to ~/.config/tori/credentials.json."""
+    """One-time browser OAuth flow. Saves refresh token to ~/.config/torium/credentials.json."""
     from torium.auth_setup import main as _run_setup
     _run_setup(manual=manual)
 
@@ -286,7 +286,7 @@ def listings_create(
 
 # ── Messages ──────────────────────────────────────────────────────────────────
 
-_CONV_CACHE = os.path.expanduser("~/.cache/tori/conversations.json")
+_CONV_CACHE = os.path.expanduser("~/.cache/torium/conversations.json")
 
 def _save_conv_cache(id_map: dict) -> None:
     os.makedirs(os.path.dirname(_CONV_CACHE), exist_ok=True)

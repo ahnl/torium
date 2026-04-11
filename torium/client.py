@@ -46,7 +46,7 @@ class ToriClient:
     Top-level client. Provides access to all API namespaces.
 
     Examples:
-        client = ToriClient()                        # uses ~/.config/tori/credentials.json
+        client = ToriClient()                        # uses ~/.config/torium/credentials.json
         client = ToriClient(refresh_token="eyJ...")  # explicit refresh token
 
         listings = client.listings.search(facet="ACTIVE")

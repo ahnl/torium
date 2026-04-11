@@ -124,7 +124,7 @@ def main(manual: bool = False) -> None:
     bearer, new_refresh, user_id = get_tori_token(refresh_token)
 
     save_credentials(new_refresh, user_id)
-    print("\n✓ Done! Credentials saved to ~/.config/tori/credentials.json")
+    print("\n✓ Done! Credentials saved to ~/.config/torium/credentials.json")
     print(f"\nrefresh_token (valid ~1 year):\n{new_refresh}")
     print(f"\ntori Bearer (valid ~1h):\n{bearer}")
 

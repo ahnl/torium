@@ -6,7 +6,7 @@ Three-step flow (fully scriptable, no browser after initial setup):
   2. POST https://login.vend.fi/api/2/oauth/exchange — get one-time spidCode
   3. POST https://apps-gw-poc.svc.tori.fi/public/login — exchange spidCode for tori Bearer
 
-Credentials are stored in ~/.config/tori/credentials.json.
+Credentials are stored in ~/.config/torium/credentials.json.
 Override with env var TORI_REFRESH_TOKEN.
 
 For first-time setup (browser OAuth flow), run: python auth_setup.py
@@ -24,7 +24,7 @@ from .signing import gw_key
 CLIENT_ID = "6079834b9b0b741812e7e91f"
 SPID_SERVER_CLIENT_ID = "650421cf50eeae31ecd2a2d3"
 REDIRECT_URI = f"fi.tori.www.{CLIENT_ID}://login"
-CREDENTIALS_PATH = os.path.expanduser("~/.config/tori/credentials.json")
+CREDENTIALS_PATH = os.path.expanduser("~/.config/torium/credentials.json")
 
 
 def load_credentials() -> dict:
@@ -103,7 +103,7 @@ class ToriAuth:
     Manages a tori Bearer token. Refreshes lazily on first use.
 
     Usage:
-        auth = ToriAuth()                        # load from ~/.config/tori/credentials.json
+        auth = ToriAuth()                        # load from ~/.config/torium/credentials.json
         auth = ToriAuth(refresh_token="eyJ...")  # explicit
         bearer = auth.get_bearer()
         auth.user_id  # available after first get_bearer() call

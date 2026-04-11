@@ -94,7 +94,7 @@ def _get_client():
 
         _client_cache[user_id] = ToriClient(
             refresh_token=session["tori_refresh_token"],
-            save_on_refresh=False,       # DO NOT touch ~/.config/tori/credentials.json
+            save_on_refresh=False,       # DO NOT touch ~/.config/torium/credentials.json
             on_refresh=_persist_rotation,  # persist rotation to SQLite instead
         )
 

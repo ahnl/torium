@@ -62,6 +62,13 @@ CREATE TABLE IF NOT EXISTS mcp_access_tokens (
     expires_at   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS mcp_access_user ON mcp_access_tokens(user_id);
+
+CREATE TABLE IF NOT EXISTS deletion_tokens (
+    token      TEXT PRIMARY KEY,
+    email      TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    used       INTEGER NOT NULL DEFAULT 0
+);
 """
 
 
@@ -223,3 +230,56 @@ class Storage:
                 self._conn.execute(
                     "DELETE FROM mcp_access_tokens WHERE access_token=?", (token,)
                 )
+
+    # ── Deletion tokens ────────────────────────────────────────────────────────
+
+    def email_has_data(self, email: str) -> bool:
+        """Check if any session data exists for this email."""
+        row = self._conn.execute(
+            "SELECT 1 FROM tori_sessions WHERE email=?", (email,)
+        ).fetchone()
+        return row is not None
+
+    def create_deletion_token(self, email: str) -> str:
+        """Create a 24-hour single-use deletion token for the given email."""
+        import secrets, time
+        token = secrets.token_urlsafe(32)
+        with self._lock:
+            with self._conn:
+                self._conn.execute(
+                    "INSERT INTO deletion_tokens (token, email, created_at, used) VALUES (?,?,?,0)",
+                    (token, email, time.time()),
+                )
+        return token
+
+    def consume_deletion_token(self, token: str) -> Optional[str]:
+        """Return email if token is valid, unused, and <24h old. Marks it used. Returns None if invalid."""
+        import time
+        cutoff = time.time() - 86400
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT email, created_at, used FROM deletion_tokens WHERE token=?",
+                (token,),
+            ).fetchone()
+            if row is None or row["used"] or row["created_at"] < cutoff:
+                return None
+            with self._conn:
+                self._conn.execute(
+                    "UPDATE deletion_tokens SET used=1 WHERE token=?", (token,)
+                )
+        return row["email"]
+
+    def delete_user_data(self, email: str) -> bool:
+        """Delete all session and token data for a user by email. Returns True if any rows deleted."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT user_id FROM tori_sessions WHERE email=?", (email,)
+            ).fetchone()
+            if row is None:
+                return False
+            self._conn.execute("PRAGMA foreign_keys=ON")
+            with self._conn:
+                # CASCADE deletes mcp_refresh_tokens and mcp_access_tokens via FK
+                self._conn.execute("DELETE FROM tori_sessions WHERE email=?", (email,))
+                self._conn.execute("DELETE FROM allowlist WHERE email=?", (email,))
+        return True

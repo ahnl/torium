@@ -718,6 +718,120 @@ async def _favicon_png(request: Request):
     return Response(content=_FAVICON_PNG, media_type="image/png")
 
 
+_DELETE_CONFIRM_PAGE = """\
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8">
+  <title>{title} — torium</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {{ --red: #e8002d; }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: 'Inter', system-ui, sans-serif; background: #f5f5f5; color: #111;
+            min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }}
+    .card {{ background: #fff; border-radius: 12px; border: 1px solid #e5e5e5;
+             padding: 48px 40px; max-width: 480px; width: 100%; text-align: center;
+             box-shadow: 0 2px 16px rgba(0,0,0,0.06); }}
+    h1 {{ font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 24px; margin: 16px 0 10px; }}
+    p {{ color: #666; line-height: 1.6; }}
+    .icon {{ font-size: 48px; }}
+    a {{ color: var(--red); }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">{icon}</div>
+    <h1>{title}</h1>
+    <p>{message}</p>
+    <p style="margin-top:20px"><a href="/">← Etusivulle</a></p>
+  </div>
+</body>
+</html>
+"""
+
+
+@mcp.custom_route("/delete-request", methods=["POST"])
+async def _delete_request(request: Request):
+    from starlette.responses import JSONResponse
+    if _storage is None:
+        return JSONResponse({"error": "not_configured"}, status_code=503)
+
+    import json as _json
+    try:
+        body = await request.body()
+        data = _json.loads(body)
+        email = str(data.get("email", "")).strip().lower()
+    except Exception:
+        return JSONResponse({"error": "bad_request"}, status_code=400)
+
+    if not email or "@" not in email:
+        return JSONResponse({"error": "invalid_email"}, status_code=400)
+
+    if not _storage.email_has_data(email):
+        return JSONResponse({"error": "not_found"}, status_code=404)
+
+    token = _storage.create_deletion_token(email)
+    base_url = os.environ.get("TORIUM_BASE_URL", "https://torium.fi")
+    confirm_url = f"{base_url}/delete-confirm?token={token}"
+
+    import resend
+    resend.api_key = os.environ.get("RESEND_API_KEY", "")
+    try:
+        resend.Emails.send({
+            "from": "torium <noreply@torium.fi>",
+            "to": [email],
+            "subject": "Vahvista tietojen poistaminen — torium",
+            "html": f"""
+<p>Hei,</p>
+<p>Pyysit kaikkien toriumiin tallennettujen tietojesi poistamista.</p>
+<p><a href="{confirm_url}">Vahvista poistaminen klikkaamalla tätä linkkiä</a></p>
+<p>Linkki on voimassa 24 tuntia. Jos et pyytänyt tätä, voit jättää viestin huomiotta.</p>
+<hr>
+<p style="color:#888;font-size:12px;">torium — ei virallinen Tori.fi-tuote</p>
+""",
+        })
+    except Exception as exc:
+        print(f"[delete-request] Resend error: {exc}", file=sys.stderr)
+        return JSONResponse({"error": "email_failed"}, status_code=500)
+
+    return JSONResponse({"ok": True})
+
+
+@mcp.custom_route("/delete-confirm", methods=["GET"])
+async def _delete_confirm(request: Request) -> HTMLResponse:
+    if _storage is None:
+        return HTMLResponse("Palvelu ei ole käytettävissä.", status_code=503)
+
+    token = request.query_params.get("token", "")
+    email = _storage.consume_deletion_token(token)
+
+    if email is None:
+        return HTMLResponse(_DELETE_CONFIRM_PAGE.format(
+            icon="⚠️",
+            title="Virheellinen linkki",
+            message="Linkki on vanhentunut tai jo käytetty. Pyydä uusi poistolinkki "
+                    "<a href='/delete'>tietojen poistosivulta</a>.",
+        ), status_code=400)
+
+    deleted = _storage.delete_user_data(email)
+    _client_cache.clear()
+
+    if deleted:
+        return HTMLResponse(_DELETE_CONFIRM_PAGE.format(
+            icon="✅",
+            title="Tiedot poistettu",
+            message=f"Kaikki osoitteeseen <strong>{html.escape(email)}</strong> liittyvät "
+                    "tiedot on poistettu palvelimeltamme pysyvästi.",
+        ))
+    return HTMLResponse(_DELETE_CONFIRM_PAGE.format(
+        icon="ℹ️",
+        title="Tietoja ei löydy",
+        message="Tiedot on jo poistettu tai niitä ei löydy palvelimelta.",
+    ))
+
+
 @mcp.custom_route("/tori-login", methods=["GET", "POST"])
 async def _tori_login(request: Request) -> HTMLResponse | RedirectResponse:
     import traceback
@@ -817,11 +931,9 @@ async def _tori_login_inner(request: Request) -> HTMLResponse | RedirectResponse
         return _error(f"Unexpected error fetching Tori identity: {exc}")
 
     # Check allowlist before issuing any MCP tokens
-    if _storage is None or not _storage.is_allowed(email):
-        return _error(
-            f"Access denied for {html.escape(email)}. "
-            "Ask the server administrator to allowlist your email address."
-        )
+    _open_access = os.environ.get("TORIUM_OPEN", "").strip() not in ("", "0", "false")
+    if not _open_access and not _storage.is_allowed(email):
+        return _error("Sähköpostiosoitettasi ei ole sallittujen listalla. Ota yhteyttä palvelimen ylläpitäjään.")
 
     # Persist Tori session + issue MCP tokens, redirect Claude to its callback
     redirect_url = _auth_provider.complete_login(mcp_state, new_refresh, user_id, email)

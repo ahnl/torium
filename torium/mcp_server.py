@@ -641,7 +641,7 @@ _LOGIN_PAGE = """\
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kirjaudu — torium</title>
+  <title>Kirjaudu · torium</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
@@ -775,22 +775,22 @@ _LOGIN_PAGE = """\
   <div class="card">
     <a class="logo" href="/">torium</a>
     <h1>Kirjaudu Tori.fi-tilillesi</h1>
-    <p class="subtitle">Yhdistä Tori.fi-tilisi Claude-integraatioon.</p>
+    <p class="subtitle">Tämä ei ole virallinen Tori.fi-tuote. Jatkamalla annat suostumuksen <a href="/privacy" style="color: var(--red);">henkilötietojen käsittelyyn</a>.</p>
 
     {error}
 
-    <p class="step-label">Vaihe 1 — Avaa Tori.fi-kirjautuminen</p>
+    <p class="step-label">Vaihe 1: Avaa Tori.fi-kirjautuminen</p>
     <a class="btn" href="{auth_url}" target="_blank" rel="noopener">Kirjaudu Tori.fi:hin &rarr;</a>
 
-    <p class="step-label">Vaihe 2 — Kopioi uudelleenohjaus-URL</p>
+    <p class="step-label">Vaihe 2: Kopioi tunnistautumistieto</p>
     <ol>
       <li>Kirjaudu sisään avautuneessa välilehdessä.</li>
-      <li>Sivu jää lataamaan tai näyttää virheen &mdash; tämä on normaalia.</li>
+      <li>Sivu jää lataamaan tai näyttää virheen, tämä on normaalia.</li>
       <li>Avaa kehittäjätyökalut: <strong>F12</strong> (Win/Linux) tai <strong>Cmd+Option+I</strong> (Mac).</li>
       <li>Mene <strong>Console</strong>-välilehdelle ja etsi URL, joka alkaa <code>fi.tori.www</code>.</li>
       <li>Kopioi koko URL ja liitä se alla olevaan kenttään.</li>
     </ol>
-    <div class="notice">Toimi nopeasti &mdash; URL vanhenee 30&ndash;60 sekunnissa.</div>
+    <div class="notice">Toimi nopeasti, URL vanhenee 30&ndash;60 sekunnissa.</div>
 
     <form method="POST">
       <input type="hidden" name="state" value="{state}">
@@ -803,10 +803,6 @@ _LOGIN_PAGE = """\
       </button>
     </form>
 
-    <p class="footer-note">
-      <a href="https://github.com/ahnl/torium">torium</a> &mdash;
-      ei virallinen Tori.fi-tuote
-    </p>
   </div>
 </body>
 </html>
@@ -850,7 +846,7 @@ _DELETE_CONFIRM_PAGE = """\
 <html lang="fi">
 <head>
   <meta charset="utf-8">
-  <title>{title} — torium</title>
+  <title>{title} · torium</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <style>

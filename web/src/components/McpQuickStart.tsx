@@ -57,7 +57,7 @@ const PRIMARY_STEPS = [
     title: 'Yhdistä ja kirjaudu',
     content: (
       <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
-        Paina <strong>Connect</strong> — sinut ohjataan kirjautumissivulle, jossa voit
+        Paina <strong>Connect</strong>, niin sinut ohjataan kirjautumissivulle, jossa voit
         yhdistää Tori.fi-tilisi. Seuraa ohjeita.
       </p>
     ),
@@ -172,7 +172,7 @@ export default function McpQuickStart() {
                 width: 20, height: 20, borderRadius: '50%',
                 border: '1px solid #ccc', color: '#888', fontSize: 11, flexShrink: 0,
               }}>▶</span>
-              Itsehostaus — asenna paikallisesti tai omalle palvelimelle
+              Itsehostaus: asenna paikallisesti tai omalle palvelimelle
             </summary>
             <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 28 }}>
               {SELFHOST_STEPS.map((step) => (

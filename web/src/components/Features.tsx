@@ -14,7 +14,7 @@ const FEATURES = [
   {
     icon: '🖼️',
     title: 'Kuvien tarkistus',
-    desc: 'Claude näkee ilmoitusten kuvat — tunnistaa kunnon, mallin, varusteet ja mahdolliset viat.',
+    desc: 'Claude näkee ilmoitusten kuvat ja tunnistaa kunnon, mallin, varusteet ja mahdolliset viat.',
   },
   {
     icon: '💬',

@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Footer from '../components/Footer.astro';
 const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month: 'long', day: 'numeric' });
 ---
-<Layout title="Tietosuojaseloste" description="toriumin tietosuojaseloste — mitä tietoja keräämme ja miten niitä käytetään">
+<Layout title="Tietosuojaseloste" description="toriumin tietosuojaseloste: mitä tietoja keräämme ja miten niitä käytetään">
   <div style="min-height: 100vh; display: flex; flex-direction: column;">
     <main style="flex: 1; max-width: 720px; margin: 0 auto; padding: 56px 24px 80px;">
       <a href="/" style="color: var(--torium-red); text-decoration: none; font-size: 14px; font-weight: 500;">← Etusivulle</a>
@@ -18,9 +18,9 @@ const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month:
       <h2>Mitä tietoja keräämme?</h2>
       <p>Kun kirjaudut palveluun Tori.fi-tunnuksillasi, tallennamme:</p>
       <ul>
-        <li><strong>Sähköpostiosoitteesi</strong> — käyttäjän tunnistamiseen</li>
-        <li><strong>Tori.fi-päivitystokenin</strong> — API-pyyntöjen suorittamiseen puolestasi</li>
-        <li><strong>MCP-pääsytokenin ja -päivitystokenin</strong> — Claude.ai-istunnon ylläpitoon</li>
+        <li><strong>Sähköpostiosoitteesi</strong> käyttäjän tunnistamiseen</li>
+        <li><strong>Tori.fi-päivitystokenin</strong> API-pyyntöjen suorittamiseen puolestasi</li>
+        <li><strong>MCP-pääsytokenin ja -päivitystokenin</strong> tekoälyistunnon ylläpitoon</li>
       </ul>
       <p>Emme kerää analytiikkatietoja, evästeitä, selaushistoriaa emmekä muita henkilötietoja. Emme myy tietojasi kolmansille osapuolille.</p>
 

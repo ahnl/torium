@@ -12,8 +12,8 @@ export default function Hero() {
           Tori.fi tekoälysi käyttöön
         </h1>
         <p style={{ fontSize: 20, color: '#555', maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.6 }}>
-          torium on avoimen lähdekoodin MCP-palvelin, jonka avulla tekoälysi voi
-          selata, hallita ja vastata Tori.fi-ilmoituksiisi.
+          torium yhdistää tekoälysi Tori.fi-tiliin. Selaa, hallitse ja vastaa
+          ilmoituksiin luonnollisella kielellä.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <a

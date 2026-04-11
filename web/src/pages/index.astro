@@ -1,8 +1,17 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar';
+import Hero from '../components/Hero';
+import Features from '../components/Features';
+import McpQuickStart from '../components/McpQuickStart';
+import CliSection from '../components/CliSection';
+import Footer from '../components/Footer.astro';
 ---
 <Layout title="Etusivu">
-  <main>
-    <h1>torium</h1>
-  </main>
+  <Navbar client:load />
+  <Hero client:load />
+  <Features client:visible />
+  <McpQuickStart client:visible />
+  <CliSection client:visible />
+  <Footer />
 </Layout>

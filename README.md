@@ -1,4 +1,4 @@
-# tori-client
+# torium
 
 > [!NOTE]  
 > **Disclaimer:** This project is not affiliated with, endorsed by, or sponsored by Tori.fi or Schibsted. It is an independent, community-developed tool.
@@ -10,16 +10,16 @@ Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool
 **1. Clone and install:**
 
 ```bash
-git clone https://github.com/ahnl/tori-client
-uv tool install ./tori-client
+git clone https://github.com/ahnl/torium
+uv tool install ./torium
 ```
 
-This places `tori-mcp` (and `tori`) on your PATH globally. No venv path needed.
+This places `torium-mcp` (and `torium`) on your PATH globally. No venv path needed.
 
 **2. Authenticate (once):**
 
 ```bash
-tori auth setup
+torium auth setup
 ```
 
 Opens a browser for OAuth login. On macOS the redirect is captured automatically. 
@@ -37,19 +37,19 @@ Go to **Settings → Developer → Edit Config** and add:
 ```json
 {
   "mcpServers": {
-    "tori": {
-      "command": "tori-mcp"
+    "torium": {
+      "command": "torium-mcp"
     }
   }
 }
 ```
 
-Restart Claude Desktop. The tori tools are now available.
+Restart Claude Desktop. The torium tools are now available.
 
 **Updating:**
 
 ```bash
-cd tori-client && git pull && uv tool install --reinstall .
+cd torium && git pull && uv tool install --reinstall .
 ```
 
 ---
@@ -57,8 +57,8 @@ cd tori-client && git pull && uv tool install --reinstall .
 ## Authentication
 
 ```bash
-tori auth setup    # first-time OAuth login (see instructions in MCP Quick Start), saves refresh token
-tori auth status   # show stored token info and expiry
+torium auth setup    # first-time OAuth login (see instructions in MCP Quick Start), saves refresh token
+torium auth status   # show stored token info and expiry
 ```
 
 You can also skip the browser flow entirely by setting `TORI_REFRESH_TOKEN` in your environment.
@@ -72,35 +72,35 @@ The refresh token rotates and is saved on each use (valid ~1 year; bearer token 
 ### Listings
 
 ```bash
-tori listings                      # active listings (default)
-tori listings --facet ALL          # ACTIVE | EXPIRED | DRAFT | DISPOSED | ALL
-tori listings stats <id>           # clicks, messages, favorites
-tori listings dispose <id>         # mark as sold (merkitse myydyksi)
-tori listings delete <id>          # permanently delete (asks for confirmation)
-tori listings delete <id> --yes    # skip confirmation
-tori listings edit <id> --price 7  # change price
-tori listings edit <id> --title "New title" --description "..."
-tori listings edit <id> --dry-run  # inspect current values without saving
-tori categories --for-create       # browse categories with IDs for listing creation
-tori categories kengät --for-create  # filter by Finnish keyword
-tori listings create --title "Kenkä" --description "..." --price 10 --category 193 --postal-code 96100
-tori listings create ... --condition 3 --trade-type 1  # condition: 1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä
+torium listings                      # active listings (default)
+torium listings --facet ALL          # ACTIVE | EXPIRED | DRAFT | DISPOSED | ALL
+torium listings stats <id>           # clicks, messages, favorites
+torium listings dispose <id>         # mark as sold (merkitse myydyksi)
+torium listings delete <id>          # permanently delete (asks for confirmation)
+torium listings delete <id> --yes    # skip confirmation
+torium listings edit <id> --price 7  # change price
+torium listings edit <id> --title "New title" --description "..."
+torium listings edit <id> --dry-run  # inspect current values without saving
+torium categories --for-create       # browse categories with IDs for listing creation
+torium categories kengät --for-create  # filter by Finnish keyword
+torium listings create --title "Kenkä" --description "..." --price 10 --category 193 --postal-code 96100
+torium listings create ... --condition 3 --trade-type 1  # condition: 1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä
 ```
 
 ### Search
 
 ```bash
-tori search "iphone"
-tori search "iphone" --category 1.93.3217
-tori search "iphone" --location 1.100018.110091  # filter by region/municipality
-tori search "iphone" --price-from 100 --price-to 500
-tori search "iphone" --shipping          # ToriDiili items only
-tori search "iphone" --page 2
-tori search "iphone" --filters           # show available filter options
-tori categories                    # browse categories with codes for search (default, same as --for-search)
-tori categories kengät             # filter by Finnish keyword
-tori locations                     # browse regions and municipalities
-tori locations helsinki            # filter by Finnish keyword
+torium search "iphone"
+torium search "iphone" --category 1.93.3217
+torium search "iphone" --location 1.100018.110091  # filter by region/municipality
+torium search "iphone" --price-from 100 --price-to 500
+torium search "iphone" --shipping          # ToriDiili items only
+torium search "iphone" --page 2
+torium search "iphone" --filters           # show available filter options
+torium categories                    # browse categories with codes for search (default, same as --for-search)
+torium categories kengät             # filter by Finnish keyword
+torium locations                     # browse regions and municipalities
+torium locations helsinki            # filter by Finnish keyword
 ```
 
 Results include a promoted (paalupaikka) listing when one exists. The Type column shows Myydään / Ostetaan / Annetaan.
@@ -108,18 +108,18 @@ Results include a promoted (paalupaikka) listing when one exists. The Type colum
 ### Messages
 
 ```bash
-tori messages                      # list conversations with unread counts
-tori messages --ids                # also show full conversation IDs
-tori messages read <n>             # show thread (use row number from the list)
-tori messages send <n> "text"      # send a message
+torium messages                      # list conversations with unread counts
+torium messages --ids                # also show full conversation IDs
+torium messages read <n>             # show thread (use row number from the list)
+torium messages send <n> "text"      # send a message
 ```
 
-Row numbers are cached at `~/.cache/tori/conversations.json`. Re-run `tori messages` to refresh.
+Row numbers are cached at `~/.cache/tori/conversations.json`. Re-run `torium messages` to refresh.
 
 ### Show listing
 
 ```bash
-tori show <id>                     # full details of any listing (own or public)
+torium show <id>                     # full details of any listing (own or public)
 ```
 
 Shows title, price, type, category, location, condition/extras, description, and image URLs.
@@ -127,7 +127,7 @@ Shows title, price, type, category, location, condition/extras, description, and
 ### Favorites
 
 ```bash
-tori favorites                     # list favorited items
+torium favorites                     # list favorited items
 ```
 
 ---
@@ -181,7 +181,7 @@ Claude Desktop's `web_fetch` cannot load URLs that originate from MCP tool respo
 ## Library Usage
 
 ```python
-from tori import ToriClient
+from torium import ToriClient
 
 client = ToriClient()                        # reads ~/.config/tori/credentials.json
 client = ToriClient(refresh_token="eyJ...")  # explicit token
@@ -214,20 +214,20 @@ favs = client.favorites.list()
 
 ## Remote MCP Server (claude.ai Connectors)
 
-You can run `tori-mcp` as a remote HTTPS server that multiple users connect to via claude.ai → Customize → Connectors. Each user authenticates their own Tori.fi account through a one-time OAuth popup.
+You can run `torium-mcp` as a remote HTTPS server that multiple users connect to via claude.ai → Customize → Connectors. Each user authenticates their own Tori.fi account through a one-time OAuth popup.
 
 **1. Allow your email (must be done before first login):**
 
 ```bash
-tori-mcp allow you@example.com --note "your name"
-tori-mcp list-allowed    # see who has access
-tori-mcp revoke foo@example.com  # remove access
+torium-mcp allow you@example.com --note "your name"
+torium-mcp list-allowed    # see who has access
+torium-mcp revoke foo@example.com  # remove access
 ```
 
 **2. Start the server:**
 
 ```bash
-tori-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com
+torium-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com
 ```
 
 The `--base-url` must be the public HTTPS URL that claude.ai can reach (e.g. via a reverse proxy or SSH tunnel).
@@ -243,7 +243,7 @@ Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted 
 ## Project Structure
 
 ```
-tori/
+torium/
 ├── auth.py          # OAuth flow, credential storage, ToriAuth class
 ├── client.py        # ToriClient: HTTP session, signing, auth retry
 ├── signing.py       # finn-gw-key HMAC-SHA512 signing

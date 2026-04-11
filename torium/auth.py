@@ -35,7 +35,7 @@ def load_credentials() -> dict:
         with open(CREDENTIALS_PATH) as f:
             return json.load(f)
     raise RuntimeError(
-        "No credentials found. Run 'tori auth setup' or set TORI_REFRESH_TOKEN."
+        "No credentials found. Run 'torium auth setup' or set TORI_REFRESH_TOKEN."
     )
 
 

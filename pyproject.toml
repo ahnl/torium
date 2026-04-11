@@ -1,5 +1,5 @@
 [project]
-name = "tori-client"
+name = "torium"
 version = "0.1.0"
 description = "Tori.fi API client — library, CLI, and MCP server"
 requires-python = ">=3.10"
@@ -11,8 +11,8 @@ dependencies = [
 ]
 
 [project.scripts]
-tori = "tori.cli:app"
-tori-mcp = "tori.mcp_server:main"
+torium = "torium.cli:app"
+torium-mcp = "torium.mcp_server:main"
 
 [build-system]
 requires = ["setuptools>=68"]

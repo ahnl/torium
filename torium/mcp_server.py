@@ -2,24 +2,24 @@
 Tori.fi MCP Server.
 
 Install globally:
-  uv tool install ./tori-client
+  uv tool install ./torium
 
 Run (local stdio, existing behaviour):
-  tori-mcp
+  torium-mcp
 
 Run (remote HTTP for claude.ai):
-  tori-mcp --transport streamable-http --host 0.0.0.0 --port 8000 --base-url https://example.com
+  torium-mcp --transport streamable-http --host 0.0.0.0 --port 8000 --base-url https://example.com
 
 Manage the email allowlist (required before first remote login):
-  tori-mcp allow mikael@example.com
-  tori-mcp revoke mikael@example.com
-  tori-mcp list-allowed
+  torium-mcp allow mikael@example.com
+  torium-mcp revoke mikael@example.com
+  torium-mcp list-allowed
 
 Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_config.json):
   {
     "mcpServers": {
-      "tori": {
-        "command": "tori-mcp"
+      "torium": {
+        "command": "torium-mcp"
       }
     }
   }
@@ -68,11 +68,11 @@ def _get_client():
     """
     if _storage is None:
         # stdio / local mode — load credentials from disk / env as before
-        from tori import ToriClient
+        from torium import ToriClient
         return ToriClient()
 
     from mcp.server.auth.middleware.auth_context import get_access_token
-    from tori import ToriClient
+    from torium import ToriClient
 
     access = get_access_token()
     if access is None:
@@ -101,7 +101,7 @@ def _get_client():
     return _client_cache[user_id]
 
 
-mcp = FastMCP("tori", instructions=(
+mcp = FastMCP("torium", instructions=(
     "Access the user's Tori.fi marketplace account. "
     "Can read listings, conversations, messages, favorites, and perform actions like "
     "marking items as sold, deleting listings, editing listing details (price/title/description), "

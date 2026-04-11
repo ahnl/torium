@@ -1,28 +1,28 @@
 """
-Tori.fi CLI — tori <command> [args]
+Tori.fi CLI — torium <command> [args]
 
 Commands:
-  tori auth setup              One-time browser OAuth flow, saves refresh token
-  tori auth status             Show stored credentials info
+  torium auth setup              One-time browser OAuth flow, saves refresh token
+  torium auth status             Show stored credentials info
 
-  tori listings                List active listings
-  tori listings --facet FACET  Filter by state (ACTIVE/EXPIRED/DRAFT/DISPOSED/ALL)
-  tori listings stats ID       Show clicks/messages/favorites for a listing
-  tori listings dispose ID     Mark a listing as sold
-  tori listings delete ID      Delete a listing (asks for confirmation)
-  tori listings edit ID        Edit listing fields (--price, --title, --description)
-  tori listings create         Create and publish a new listing
+  torium listings                List active listings
+  torium listings --facet FACET  Filter by state (ACTIVE/EXPIRED/DRAFT/DISPOSED/ALL)
+  torium listings stats ID       Show clicks/messages/favorites for a listing
+  torium listings dispose ID     Mark a listing as sold
+  torium listings delete ID      Delete a listing (asks for confirmation)
+  torium listings edit ID        Edit listing fields (--price, --title, --description)
+  torium listings create         Create and publish a new listing
 
-  tori messages                List conversations with unread counts
-  tori messages read ID        Show full message thread for a conversation
-  tori messages send ID TEXT   Send a message in a conversation
+  torium messages                List conversations with unread counts
+  torium messages read ID        Show full message thread for a conversation
+  torium messages send ID TEXT   Send a message in a conversation
 
-  tori favorites               List favorited items
+  torium favorites               List favorited items
 
-  tori categories              Browse categories with codes for search (--category)
-  tori categories --for-create Browse categories with IDs for listing creation
+  torium categories              Browse categories with codes for search (--category)
+  torium categories --for-create Browse categories with IDs for listing creation
 
-  tori locations               Browse regions and municipalities (returns code for --location)
+  torium locations               Browse regions and municipalities (returns code for --location)
 """
 
 import json
@@ -48,7 +48,7 @@ console = Console()
 
 
 def get_client():
-    from tori import ToriClient
+    from torium import ToriClient
     return ToriClient()
 
 
@@ -79,14 +79,14 @@ def auth_setup(
     manual: bool = typer.Option(False, "--manual", help="Paste redirect URL manually (required on Windows/Linux if auto-capture fails)"),
 ):
     """One-time browser OAuth flow. Saves refresh token to ~/.config/tori/credentials.json."""
-    from tori.auth_setup import main as _run_setup
+    from torium.auth_setup import main as _run_setup
     _run_setup(manual=manual)
 
 
 @auth_app.command("status")
 def auth_status():
     """Show stored credentials info."""
-    from tori.auth import load_credentials
+    from torium.auth import load_credentials
     import base64, json as _json
     try:
         creds = load_credentials()
@@ -273,7 +273,7 @@ def listings_create(
     ad_id = result.get("ad_id")
     if result.get("dry_run"):
         rprint(f"[yellow]Dry run complete. Draft {ad_id} left unpublished.[/yellow]")
-        rprint(f"  Delete it: [bold]tori listings delete {ad_id}[/bold]")
+        rprint(f"  Delete it: [bold]torium listings delete {ad_id}[/bold]")
         return
     completed = result.get("is-completed", False)
     if completed:
@@ -302,7 +302,7 @@ def _resolve_conv_id(ref: str) -> str:
             conv_id = cache.get(ref)
             if conv_id:
                 return conv_id
-        rprint(f"[red]No cached conversation #{ref}. Run 'tori messages' first.[/red]")
+        rprint(f"[red]No cached conversation #{ref}. Run 'torium messages' first.[/red]")
         raise typer.Exit(1)
     return ref  # treat as literal ID
 
@@ -408,7 +408,7 @@ def categories_cmd(
     for_create: bool = typer.Option(False, "--for-create", help="Show IDs for listing creation instead of search codes"),
     for_search: bool = typer.Option(False, "--for-search", help="Show search codes (default)"),
 ):
-    """Browse categories. Default: search codes for tori search --category. Use --for-create for listing creation IDs."""
+    """Browse categories. Default: search codes for torium search --category. Use --for-create for listing creation IDs."""
     client = get_client()
     with console.status("Fetching categories..."):
         if for_create:
@@ -424,7 +424,7 @@ def categories_cmd(
             for c in cats_create:
                 table.add_row(c["id"], c["label"], c.get("parent", ""), c.get("section", ""))
             console.print(table)
-            rprint(f"\n[dim]Use ID with: tori listings create --category ID[/dim]")
+            rprint(f"\n[dim]Use ID with: torium listings create --category ID[/dim]")
         else:
             cats_search = client.search.find_search_categories(query or "")
             if not cats_search:
@@ -437,7 +437,7 @@ def categories_cmd(
             for c in cats_search:
                 table.add_row(c["code"], c["name"], c.get("parent", ""))
             console.print(table)
-            rprint(f"\n[dim]Use code with: tori search --category CODE[/dim]")
+            rprint(f"\n[dim]Use code with: torium search --category CODE[/dim]")
 
 
 # ── Locations ─────────────────────────────────────────────────────────────────
@@ -446,7 +446,7 @@ def categories_cmd(
 def locations_cmd(
     query: Optional[str] = typer.Argument(None, help="Filter by name (Finnish keyword)"),
 ):
-    """Browse regions and municipalities to find the code for tori search --location."""
+    """Browse regions and municipalities to find the code for torium search --location."""
     client = get_client()
     with console.status("Fetching locations..."):
         locs = client.search.find_locations(query or "")
@@ -464,7 +464,7 @@ def locations_cmd(
         table.add_row(loc["code"], loc["name"], loc.get("parent", ""))
 
     console.print(table)
-    rprint(f"\n[dim]Use code with: tori search --location CODE[/dim]")
+    rprint(f"\n[dim]Use code with: torium search --location CODE[/dim]")
 
 
 # ── Favorites ─────────────────────────────────────────────────────────────────

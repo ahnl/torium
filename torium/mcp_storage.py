@@ -1,5 +1,5 @@
 """
-SQLite-backed storage for tori-mcp multi-tenant state.
+SQLite-backed storage for torium-mcp multi-tenant state.
 
 DB path: ~/.config/tori/mcp.db
 
@@ -66,7 +66,7 @@ CREATE INDEX IF NOT EXISTS mcp_access_user ON mcp_access_tokens(user_id);
 
 
 class Storage:
-    """Thread-safe SQLite wrapper for tori-mcp multi-tenant state."""
+    """Thread-safe SQLite wrapper for torium-mcp multi-tenant state."""
 
     def __init__(self, path: str = DB_PATH) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)

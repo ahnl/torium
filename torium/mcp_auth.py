@@ -1,5 +1,5 @@
 """
-MCP-level OAuth 2.1 authorization server for tori-mcp.
+MCP-level OAuth 2.1 authorization server for torium-mcp.
 
 Wraps the existing Tori.fi / Schibsted login using the same "paste the redirect
 URL" technique documented in the README for Windows/Linux.

@@ -1,68 +1,5 @@
 import { motion } from 'framer-motion';
-
-const PRIMARY_STEPS = [
-  {
-    n: '1',
-    title: 'Avaa liitinyhteyksien asetukset',
-    content: (
-      <>
-        <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
-          Mene MCP-yhteensopivan tekoälypalvelusi liitinasetuksiin. Esimerkiksi Claude.ai:ssa:{' '}
-          <a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--torium-red)', textDecoration: 'none', fontWeight: 500 }}>
-            claude.ai/settings/connectors
-          </a>
-        </p>
-      </>
-    ),
-  },
-  {
-    n: '2',
-    title: 'Lisää mukautettu liitin',
-    content: (
-      <>
-        <p style={{ color: '#666', margin: '6px 0 10px', fontSize: 14 }}>
-          Paina <strong>Add custom connector</strong> ja täytä tiedot:
-        </p>
-        <div style={{
-          background: '#f8f8f8', border: '1px solid #e5e5e5',
-          borderRadius: 8, padding: '12px 16px',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', fontSize: 14 }}>
-            <span style={{ color: '#888', minWidth: 140 }}>Nimi</span>
-            <code style={{
-              background: '#1a1a1a', color: '#e8e8e8',
-              padding: '2px 8px', borderRadius: 4,
-              fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-            }}>Torium</code>
-          </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', fontSize: 14 }}>
-            <span style={{ color: '#888', minWidth: 140 }}>Remote MCP server URL</span>
-            <code style={{
-              background: '#1a1a1a', color: '#e8e8e8',
-              padding: '2px 8px', borderRadius: 4,
-              fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
-            }}>https://torium.fi/mcp</code>
-          </div>
-        </div>
-        <p style={{ color: '#666', margin: '8px 0 0', fontSize: 14 }}>
-          Paina <strong>Add</strong>.
-        </p>
-      </>
-    ),
-  },
-  {
-    n: '3',
-    title: 'Yhdistä ja kirjaudu',
-    content: (
-      <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
-        Paina <strong>Connect</strong>, niin sinut ohjataan kirjautumissivulle, jossa voit
-        yhdistää Tori.fi-tilisi. Seuraa ohjeita.
-      </p>
-    ),
-  },
-];
+import { useState } from 'react';
 
 const SELFHOST_STEPS = [
   {
@@ -103,7 +40,102 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
+function CopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  }
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center',
+      padding: '10px 0',
+      borderBottom: '1px solid #ebebeb',
+      gap: 12,
+    }}>
+      <span style={{ color: '#888', fontSize: 13, width: 160, flexShrink: 0 }}>{label}</span>
+      <code style={{
+        background: '#1a1a1a', color: '#e8e8e8',
+        padding: '3px 10px', borderRadius: 5,
+        fontFamily: 'JetBrains Mono, monospace', fontSize: 13,
+        flex: 1,
+      }}>{value}</code>
+      <button
+        onClick={handleCopy}
+        style={{
+          background: copied ? '#e6f9ed' : '#f0f0f0',
+          color: copied ? '#1a7a3a' : '#555',
+          border: 'none', borderRadius: 5,
+          padding: '4px 10px', fontSize: 12, fontWeight: 500,
+          cursor: 'pointer', fontFamily: 'inherit',
+          flexShrink: 0, transition: 'background 0.2s, color 0.2s',
+          minWidth: 72,
+        }}
+      >
+        {copied ? 'Kopioitu ✓' : 'Kopioi'}
+      </button>
+    </div>
+  );
+}
+
+function ConnectorFields() {
+  return (
+    <>
+      <p style={{ color: '#666', margin: '6px 0 10px', fontSize: 14 }}>
+        Paina <strong>Add custom connector</strong> ja täytä tiedot:
+      </p>
+      <div style={{
+        background: '#f8f8f8', border: '1px solid #e5e5e5',
+        borderRadius: 8, padding: '0 16px',
+      }}>
+        <CopyField label="Nimi" value="Torium" />
+        <div style={{ borderBottom: 'none' }}>
+          <CopyField label="Remote MCP server URL" value="https://torium.fi/mcp" />
+        </div>
+      </div>
+      <p style={{ color: '#666', margin: '8px 0 0', fontSize: 14 }}>
+        Paina <strong>Add</strong>.
+      </p>
+    </>
+  );
+}
+
 export default function McpQuickStart() {
+  const primarySteps = [
+    {
+      n: '1',
+      title: 'Avaa liitinyhteyksien asetukset',
+      content: (
+        <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
+          Mene MCP-yhteensopivan tekoälypalvelusi liitinasetuksiin. Esimerkiksi Claude.ai:ssa:{' '}
+          <a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--torium-red)', textDecoration: 'none', fontWeight: 500 }}>
+            claude.ai/settings/connectors
+          </a>
+        </p>
+      ),
+    },
+    {
+      n: '2',
+      title: 'Lisää mukautettu liitin',
+      content: <ConnectorFields />,
+    },
+    {
+      n: '3',
+      title: 'Yhdistä ja kirjaudu',
+      content: (
+        <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
+          Paina <strong>Connect</strong>, niin sinut ohjataan kirjautumissivulle, jossa voit
+          yhdistää Tori.fi-tilisi. Seuraa ohjeita.
+        </p>
+      ),
+    },
+  ];
+
   return (
     <section id="aloita" style={{ padding: '96px 24px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
@@ -127,7 +159,7 @@ export default function McpQuickStart() {
         </motion.p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-          {PRIMARY_STEPS.map((step, i) => (
+          {primarySteps.map((step, i) => (
             <motion.div
               key={step.n}
               initial={{ opacity: 0, x: -16 }}

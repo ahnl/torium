@@ -90,13 +90,13 @@ export default function CliSection() {
             }}>
               <TabsTrigger
                 value="cli"
-                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600 }}
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
                 <span style={{ marginRight: 6 }}>$</span> CLI
               </TabsTrigger>
               <TabsTrigger
                 value="python"
-                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600 }}
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
                 <span style={{ marginRight: 6 }}>🐍</span> Python-kirjasto
               </TabsTrigger>

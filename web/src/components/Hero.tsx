@@ -12,14 +12,14 @@ export default function Hero() {
           Tori.fi tekoälysi käyttöön
         </h1>
         <p style={{ fontSize: 20, color: '#555', maxWidth: 560, margin: '0 auto 36px', lineHeight: 1.6 }}>
-          torium yhdistää tekoälysi Tori.fi-tiliin. Selaa, hallitse ja vastaa
+          Torium yhdistää tekoälysi Tori.fi-tiliin. Selaa, hallitse ja vastaa
           ilmoituksiin luonnollisella kielellä.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <a
             href="#aloita"
             style={{
-              background: 'var(--torium-red)', color: '#fff',
+              background: 'var(--torium-purple)', color: '#fff',
               padding: '13px 28px', borderRadius: 8,
               textDecoration: 'none', fontSize: 16, fontWeight: 500,
             }}
@@ -31,7 +31,7 @@ export default function Hero() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              border: '2px solid var(--torium-red)', color: 'var(--torium-red)',
+              border: '2px solid var(--torium-purple)', color: 'var(--torium-purple)',
               padding: '11px 28px', borderRadius: 8,
               textDecoration: 'none', fontSize: 16, fontWeight: 500,
               background: 'transparent',

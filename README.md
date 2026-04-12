@@ -1,8 +1,5 @@
 # torium
 
-> [!NOTE]  
-> **Disclaimer:** This project is not affiliated with, endorsed by, or sponsored by Tori.fi or Schibsted. It is an independent, community-developed tool.
-
 Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
 
 ## MCP Quick Start
@@ -240,6 +237,22 @@ Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted 
 
 ---
 
+## Disclaimer
+
+Torium is an independent, community-developed interoperability client for
+the Tori.fi marketplace. It is not affiliated with, endorsed by, or
+sponsored by Tori.fi, Vend Marketplaces Oy, or Schibsted.
+
+This software is provided "as is", without warranty of any kind.
+
+By using Torium, you acknowledge that:
+- You are the registered holder of the Tori.fi account you authenticate with
+- Your use is your own responsibility and must comply with any agreements
+  you have with third parties, including Tori.fi
+- The authors assume no liability for any consequences of your use
+
+---
+
 ## Project Structure
 
 ```
@@ -257,3 +270,8 @@ torium/
 └── mcp_storage.py   # SQLite storage for multi-tenant sessions and tokens
 ```
 
+---
+
+## License
+
+[MIT](LICENSE)

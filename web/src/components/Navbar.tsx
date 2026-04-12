@@ -84,8 +84,8 @@ export default function Navbar() {
         transition: 'border-color 0.2s',
       }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', height: 64, gap: 32 }}>
-          <a href="/" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 600, fontSize: 22, color: 'var(--torium-red)', textDecoration: 'none' }}>
-            torium
+          <a href="/" style={{ fontFamily: 'Unbounded, sans-serif', fontWeight: 600, fontSize: 22, color: 'var(--torium-purple)', textDecoration: 'none' }}>
+            Torium
           </a>
 
           {/* Desktop nav */}
@@ -106,7 +106,7 @@ export default function Navbar() {
               href="#aloita"
               onClick={handleNavClick}
               style={{
-                background: 'var(--torium-red)', color: '#fff',
+                background: 'var(--torium-purple)', color: '#fff',
                 padding: '8px 18px', borderRadius: 6,
                 textDecoration: 'none', fontSize: 15, fontWeight: 500,
                 whiteSpace: 'nowrap',

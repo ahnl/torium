@@ -1,4 +1,4 @@
-# torium
+# Torium
 
 Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
 

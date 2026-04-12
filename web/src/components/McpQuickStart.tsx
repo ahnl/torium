@@ -44,7 +44,7 @@ function RemoteConnectorFields() {
         href="https://claude.ai/settings/connectors"
         target="_blank"
         rel="noopener noreferrer"
-        style={{ color: 'var(--torium-red)', textDecoration: 'none', fontWeight: 500 }}
+        style={{ color: 'var(--torium-purple)', textDecoration: 'none', fontWeight: 500 }}
       >
         claude.ai/settings/connectors
       </a>{' '}
@@ -172,9 +172,9 @@ function SelfhostStepList({ steps }: { steps: Step[] }) {
         <div key={step.n} style={{ display: 'flex', gap: 20 }}>
           <div style={{
             width: 28, height: 28, borderRadius: '50%',
-            border: '2px solid var(--torium-red)', color: 'var(--torium-red)',
+            border: '2px solid var(--torium-purple)', color: 'var(--torium-purple)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
+            fontFamily: 'Unbounded, sans-serif', fontWeight: 600,
             fontSize: 13, flexShrink: 0, marginTop: 3,
           }}>
             {step.n}
@@ -200,7 +200,7 @@ export default function McpQuickStart() {
         <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
           Mene MCP-yhteensopivan tekoälypalvelusi liitinasetuksiin. Esimerkiksi Claude.ai:ssa:{' '}
           <a href="https://claude.ai/settings/connectors" target="_blank" rel="noopener noreferrer"
-            style={{ color: 'var(--torium-red)', textDecoration: 'none', fontWeight: 500 }}>
+            style={{ color: 'var(--torium-purple)', textDecoration: 'none', fontWeight: 500 }}>
             claude.ai/settings/connectors
           </a>
         </p>
@@ -292,9 +292,9 @@ export default function McpQuickStart() {
                   >
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%',
-                      background: 'var(--torium-red)', color: '#fff',
+                      background: 'var(--torium-purple)', color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
+                      fontFamily: 'Unbounded, sans-serif', fontWeight: 600,
                       fontSize: 15, flexShrink: 0, marginTop: 3,
                     }}>
                       {step.n}

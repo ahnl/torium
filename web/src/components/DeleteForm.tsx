@@ -44,7 +44,7 @@ export default function DeleteForm() {
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
       {state === 'error' && (
-        <div style={{ background: 'var(--torium-red-subtle)', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#900' }}>
+        <div style={{ background: 'var(--torium-purple-subtle)', border: '1px solid #d8b4fe', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#581c87' }}>
           {errorMsg}
         </div>
       )}
@@ -68,7 +68,7 @@ export default function DeleteForm() {
         type="submit"
         disabled={state === 'loading'}
         style={{
-          background: 'var(--torium-red)', color: '#fff',
+          background: 'var(--torium-purple)', color: '#fff',
           border: 'none', padding: '10px 24px',
           borderRadius: 6, fontSize: 15, fontWeight: 500,
           cursor: state === 'loading' ? 'not-allowed' : 'pointer',

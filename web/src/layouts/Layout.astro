@@ -9,11 +9,12 @@ export interface Props {
 
 const {
   title,
-  description = 'Tori.fi tekoälysi käyttöön. Selaa, hallitse ja vastaa Torin ilmoituksiin luonnollisella kielellä.',
+  description = 'Torium yhdistää tekoälysi Tori.fi-tiliin. Selaa, hallitse ja vastaa Torin ilmoituksiin luonnollisella kielellä.',
   ogImage = '/og-image.png',
 } = Astro.props;
 
 const canonicalUrl = (Astro.site ?? Astro.url.origin).toString().replace(/\/$/, '');
+const fullTitle = title.includes('Torium') ? title : `${title} · Torium`;
 ---
 <!doctype html>
 <html lang="fi">
@@ -23,17 +24,17 @@ const canonicalUrl = (Astro.site ?? Astro.url.origin).toString().replace(/\/$/, 
   <meta name="description" content={description} />
   <meta property="og:type" content="website" />
   <meta property="og:url" content={canonicalUrl} />
-  <meta property="og:title" content={`${title} · Torium`} />
+  <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
   <meta property="og:image" content={`${canonicalUrl}${ogImage}`} />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content={`${title} · Torium`} />
+  <meta name="twitter:title" content={fullTitle} />
   <meta name="twitter:description" content={description} />
   <meta name="twitter:image" content={`${canonicalUrl}${ogImage}`} />
   <link rel="icon" type="image/png" href="/favicon.png" />
-  <title>{title} · Torium</title>
+  <title>{fullTitle}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link

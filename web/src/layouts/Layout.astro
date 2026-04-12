@@ -13,7 +13,7 @@ const {
   ogImage = '/og-image.png',
 } = Astro.props;
 
-const canonicalUrl = Astro.url.origin;
+const canonicalUrl = (Astro.site ?? Astro.url.origin).toString().replace(/\/$/, '');
 ---
 <!doctype html>
 <html lang="fi">

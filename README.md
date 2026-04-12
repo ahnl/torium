@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="docs/Torium.png" width="120" alt="Torium" />
+</div>
+
 # Torium
 
 Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.

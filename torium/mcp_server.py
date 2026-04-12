@@ -25,12 +25,12 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
   }
 """
 
-import base64
 import html
 import json
 import os
 import sys
 import urllib.parse
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -47,8 +47,9 @@ from starlette.responses import HTMLResponse, RedirectResponse
 #   per request would force 3 Schibsted auth round-trips on every tool call.
 # _auth_provider: ToriMCPAuthProvider; set in _cmd() for HTTP transports.
 
-_FAVICON_ICO = base64.b64decode("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")
-_FAVICON_PNG = base64.b64decode("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")
+_ASSETS = Path(__file__).parent
+_FAVICON_ICO = (_ASSETS / "favicon.ico").read_bytes()
+_FAVICON_PNG = (_ASSETS / "favicon.png").read_bytes()
 
 _storage: Optional["Storage"] = None           # type: ignore[name-defined]
 _client_cache: dict[int, "ToriClient"] = {}    # type: ignore[name-defined]
@@ -641,15 +642,15 @@ _LOGIN_PAGE = """\
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kirjaudu · torium</title>
+  <title>Kirjaudu · Torium</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
     :root {{
-      --red: #e8002d;
-      --red-dark: #c0001f;
-      --red-subtle: #fff0f2;
+      --purple: #9333ea;
+      --purple-dark: #7c3aed;
+      --purple-subtle: #faf5ff;
     }}
     * {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{
@@ -674,16 +675,16 @@ _LOGIN_PAGE = """\
       box-shadow: 0 2px 16px rgba(0,0,0,0.06);
     }}
     .logo {{
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Unbounded', sans-serif;
       font-weight: 600;
       font-size: 20px;
-      color: var(--red);
+      color: var(--purple);
       text-decoration: none;
       display: block;
       margin-bottom: 24px;
     }}
     h1 {{
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Unbounded', sans-serif;
       font-weight: 600;
       font-size: 21px;
       margin-bottom: 6px;
@@ -706,7 +707,7 @@ _LOGIN_PAGE = """\
       display: inline-block;
       padding: 10px 20px;
       border-radius: 7px;
-      background: var(--red);
+      background: var(--purple);
       color: #fff;
       font-size: 14px;
       font-weight: 500;
@@ -716,7 +717,7 @@ _LOGIN_PAGE = """\
       font-family: inherit;
       transition: background 0.15s;
     }}
-    .btn:hover {{ background: var(--red-dark); }}
+    .btn:hover {{ background: var(--purple-dark); }}
     .btn:disabled {{ opacity: 0.65; cursor: not-allowed; }}
     ol {{
       padding-left: 1.4em;
@@ -725,7 +726,7 @@ _LOGIN_PAGE = """\
       line-height: 1.75;
     }}
     .notice {{
-      background: var(--red-subtle);
+      background: var(--purple-subtle);
       border-radius: 6px;
       padding: 9px 14px;
       font-size: 13px;
@@ -745,14 +746,14 @@ _LOGIN_PAGE = """\
       color: #111;
       line-height: 1.5;
     }}
-    textarea:focus {{ outline: 2px solid var(--red); border-color: transparent; }}
+    textarea:focus {{ outline: 2px solid var(--purple); border-color: transparent; }}
     .error {{
-      background: #fff0f0;
-      border: 1px solid #fca5a5;
+      background: #faf5ff;
+      border: 1px solid #d8b4fe;
       border-radius: 6px;
       padding: 10px 14px;
       margin-bottom: 18px;
-      color: #900;
+      color: #581c87;
       font-size: 14px;
     }}
     code {{
@@ -773,9 +774,9 @@ _LOGIN_PAGE = """\
 </head>
 <body>
   <div class="card">
-    <a class="logo" href="/">torium</a>
+    <a class="logo" href="/">Torium</a>
     <h1>Kirjaudu Tori.fi-tilillesi</h1>
-    <p class="subtitle">Tämä ei ole virallinen Tori.fi-tuote. Jatkamalla annat suostumuksen <a href="/privacy" style="color: var(--red);">henkilötietojen käsittelyyn</a>.</p>
+    <p class="subtitle">Tämä ei ole virallinen Tori.fi-tuote. Jatkamalla annat suostumuksen <a href="/privacy" style="color: var(--purple);">henkilötietojen käsittelyyn</a>.</p>
 
     {error}
 
@@ -819,7 +820,7 @@ async def _frontpage(request: Request) -> HTMLResponse:
 <html>
 <head>
   <meta charset="utf-8">
-  <title>torium</title>
+  <title>Torium</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
 </head>
 <body>

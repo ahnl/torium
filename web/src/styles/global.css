@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Montserrat', sans-serif;
+    --font-heading: 'Unbounded', sans-serif;
     --font-sans: 'Inter', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
@@ -43,9 +43,9 @@
 
 :root {
     /* Torium brand colors */
-    --torium-red:        #e8002d;
-    --torium-red-dark:   #c0001f;
-    --torium-red-subtle: #fff0f2;
+    --torium-purple:        #9333ea;
+    --torium-purple-dark:   #7c3aed;
+    --torium-purple-subtle: #faf5ff;
 
     /* ShadCN semantic tokens — light mode */
     --background: oklch(1 0 0);
@@ -54,8 +54,8 @@
     --card-foreground: oklch(0.13 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.13 0 0);
-    /* Primary = torium red (#e8002d ≈ oklch(0.44 0.27 22)) */
-    --primary: oklch(0.44 0.27 22);
+    /* Primary = torium purple (#9333ea ≈ oklch(0.52 0.28 293)) */
+    --primary: oklch(0.52 0.28 293);
     --primary-foreground: oklch(1 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.13 0 0);
@@ -66,16 +66,16 @@
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.91 0 0);
     --input: oklch(0.91 0 0);
-    --ring: oklch(0.44 0.27 22);
+    --ring: oklch(0.52 0.28 293);
     --radius: 0.5rem;
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.13 0 0);
-    --sidebar-primary: oklch(0.44 0.27 22);
+    --sidebar-primary: oklch(0.52 0.28 293);
     --sidebar-primary-foreground: oklch(1 0 0);
     --sidebar-accent: oklch(0.97 0 0);
     --sidebar-accent-foreground: oklch(0.13 0 0);
     --sidebar-border: oklch(0.91 0 0);
-    --sidebar-ring: oklch(0.44 0.27 22);
+    --sidebar-ring: oklch(0.52 0.28 293);
 }
 
 @layer base {

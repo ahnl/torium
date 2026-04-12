@@ -97,9 +97,14 @@ export default function Navbar() {
                 onClick={handleNavClick}
                 target={link.external ? '_blank' : undefined}
                 rel={link.external ? 'noopener noreferrer' : undefined}
-                style={{ color: '#333', textDecoration: 'none', fontSize: 15, fontWeight: 500 }}
+                style={{ color: '#333', textDecoration: 'none', fontSize: 15, fontWeight: 500, display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}
               >
                 {link.label}
+                {link.external && (
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" style={{ marginLeft: 4, verticalAlign: 'middle', opacity: 0.5 }}>
+                    <path d="M1.5 9.5L9.5 1.5M9.5 1.5H4.5M9.5 1.5V6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
               </a>
             ))}
             <a
@@ -161,10 +166,15 @@ export default function Navbar() {
                       fontSize: 16, fontWeight: 500,
                       padding: '12px 0',
                       borderBottom: i < NAV_LINKS.length - 1 ? '1px solid #f0f0f0' : 'none',
-                      display: 'block',
+                      display: 'flex', alignItems: 'center', gap: 6,
                     }}
                   >
                     {link.label}
+                    {link.external && (
+                      <svg width="12" height="12" viewBox="0 0 11 11" fill="none" style={{ opacity: 0.4 }}>
+                        <path d="M1.5 9.5L9.5 1.5M9.5 1.5H4.5M9.5 1.5V6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </motion.a>
                 ))}
               </div>

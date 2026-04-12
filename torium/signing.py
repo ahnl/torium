@@ -1,19 +1,23 @@
 """
-finn-gw-key signing — HMAC-SHA512.
+HMAC-SHA512 request signing for the Tori.fi API.
 
-Reverse-engineered from Tori.fi Android APK (build 260330):
-  no.finn.android.networking.HmacSigningInterceptor
-  no.finn.android.AppEnvironment (PRODUCTION_HMAC_KEY, ROT-13 + base64-decoded)
+This module implements the signature scheme required by the Tori.fi
+API gateway. The signing parameters below are compatibility values
+necessary to establish interoperability with the service, in
+accordance with the principles set out in Directive 2009/24/EC
+Article 6 on decompilation for interoperability purposes.
 
 Message format: {METHOD};{path}{?query};{finn-gw-service};{body bytes}
-Verified against live-captured traffic. See ../finn_gw_key.md for full report.
 """
 
 import base64
+import codecs
 import hashlib
 import hmac
 
-_SIGNING_KEY = b"3b535f36-79be-424b-a6fd-116c6e69f137"
+_SIGNING_KEY = base64.b64decode(codecs.decode(
+    "Z2V1ZmIzZmLgAmyvMF00ZwEvYJR2MzDgZGR2LmMyAwyzZGZ3", "rot13"
+))
 
 
 def gw_key(

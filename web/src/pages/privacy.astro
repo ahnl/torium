@@ -13,21 +13,29 @@ const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month:
 
       <p>Tässä tietosuojaselosteessa informoimme henkilötietojen käsittelystä yleisen tietosuoja-asetuksen (EU) 2016/679 mukaisesti.</p>
 
-      <h2>Mikä on henkilötietojen käsittelyn peruste ja tarkoitus?</h2>
-      <p>Henkilötietojen käsittely on tarpeen, jotta voimme tarjota käyttäjille MCP-integraatiota Tori.fi:n liittämiseksi käyttäjän valitsemaan tekoälysovellukseen. Tietoja käytetään yksinomaan Tori.fi:n rajapintakutsujen suorittamiseen MCP-integraation kautta. Käsittelyn oikeusperustana on rekisteröidyn suostumus. Varmistamme, että käsittely perustuu aina lakiin ja noudattaa tietosuojaperiaatteita.</p>
+      <h2>Mikä on henkilötietojen käsittelyn tarkoitus ja oikeusperuste?</h2>
+      <p>Käsittelemme henkilötietoja MCP-integraation (Model Context Protocol) tarjoamiseksi. MCP-integraatio yhdistää Tori.fi-palvelun käyttäjän valitsemaan tekoälysovellukseen. MCP-palvelin toimii välittäjänä, joka vastaanottaa käyttäjän komennon, tekee rajapintakutsun Tori.fi:hin ja palauttaa vastauksen käyttäjän laitteelle. Käyttäjän omien tietojen osalta käsittelyn oikeusperustana on sopimuksen täytäntöönpano. Käsittely on välttämätöntä palvelun toteuttamiseksi. Käyttäjä voi lopettaa palvelun käytön milloin tahansa, jolloin tiedot poistetaan jäljempänä kuvatun säilytysajan mukaisesti.</p>
+      <p>Siltä osin kuin palvelun käytön yhteydessä välitetään muiden Tori.fi-käyttäjien henkilötietoja, käsittely perustuu rekisterinpitäjän oikeutettuun etuun. Oikeutettu etu on MCP-integraatiopalvelun tarjoaminen rekisteröidyille. Osa Tori.fi:n rajapintavastauksista sisältää muiden käyttäjien tietoja, joita ei ole mahdollista erottaa palvelun toiminnallisuutta menettämättä. Olemme arvioineet, että käsittely ei olennaisesti vaikuta kolmansien henkilöiden oikeuksiin, koska tiedot ovat Tori.fi:ssä julkisesti saatavilla tai rekisteröidyn oman tilin kautta nähtävissä eikä niitä tallenneta palvelimelle. Henkilöllä, jonka tietoja välitetään, on oikeus vastustaa käsittelyä henkilökohtaiseen erityiseen tilanteeseensa liittyvällä perusteella ottamalla yhteyttä rekisterinpitäjään.</p>
 
       <h2>Mitä tietoja keräämme?</h2>
-      <p>Keräämme rekisteröidyistä Tori.fi:n käyttäjän uniikin tunnisteen, sähköpostiosoitteen ja tunnistautumisavaimen. Tunnistautumisavain on voimassa puoli vuotta kerrallaan.</p>
+      <p>Palvelimelle tallennetaan Tori.fi-tunniste, sähköpostiosoite ja tunnistautumisavain, joka on voimassa kuusi kuukautta kerrallaan. Käyttäjä päättää itse, mitä toimintoja hän tekoälysovelluksensa kautta käyttää. Käyttäjän valinnoista riippuen Tori.fi:n rajapinnasta välitetään käyttäjän laitteelle ilmoitustietoja (mm. tekstit, kuvat, hinnat), viestikeskusteluja, suosikkeja, hakuvahteja ja ilmoitusten tilastotietoja. Välitettäviin tietoihin voi sisältyä myös muiden Tori.fi-käyttäjien tuottamia tietoja, kuten julkisten ilmoitusten tekstejä ja kuvia, myyjätietoja sekä viestikeskustelujen vastapuolen viestejä. Näitä tietoja ei tallenneta palvelimelle.</p>
 
       <h2>Kuinka kauan säilytämme henkilötietoja?</h2>
-      <p>Emme säilytä henkilötietojasi pidempään kuin on välttämätöntä käyttötarkoituksen kannalta. Tietosi poistetaan sinä ajankohtana, kun tallentamamme tunnistautumisavain vanhenee. Tunnistautumisavain uusiutuu käyttäjän puolesta, jos MCP-integraatiota on käytetty viimeisen puolen vuoden aikana.</p>
+      <p>Tallennetut tiedot poistetaan tunnistautumisavaimen vanhetessa. Tunnistautumisavain uusiutuu automaattisesti, jos palvelua on käytetty viimeisen kuuden kuukauden aikana. Muussa tapauksessa avain vanhenee ja kaikki tallennetut tiedot poistetaan. Rajapintakutsujen yhteydessä välitettäviä tietoja ei tallenneta palvelimelle, vaan ne käsitellään ainoastaan yksittäisen kutsun ajan.</p>
 
-      <h2>Miten pidämme henkilötietosi turvassa?</h2>
-      <p>Käsittelemme henkilötietoja tavalla, jolla pyritään varmistamaan henkilötietojen asianmukainen turvallisuus, mukaan lukien suojaaminen luvattomalta käsittelyltä sekä vahingossa tapahtuvalta häviämiseltä, tuhoutumiselta tai vahingoittumiselta.</p>
-      <p>Käytämme asianmukaisia teknisiä ja organisatorisia suojatoimia tämän tavoitteen varmistamiseksi, mukaan lukien palomuurien, salaustekniikoiden ja turvallisten laitetilojen käyttö, asianmukainen kulunvalvonta, tietojärjestelmien käyttäjätunnusten huolellinen hallinta sekä henkilötietojen käsittelyyn osallistuvan henkilöstön ohjeistaminen.</p>
+      <h2>Henkilötietojen vastaanottajat</h2>
+      <p>Rajapintakutsut kohdistuvat Tori.fi-palveluun, joka on käsiteltävien tietojen lähde. Tori.fi käsittelee tietoja oman tietosuojaselosteensa mukaisesti.</p>
+      <p>Rekisterinpitäjän lukuun toimivat tietojenkäsittelypalveluiden tarjoajat käsittelevät henkilötietoja henkilötietojen käsittelijöinä rekisterinpitäjän antamien ohjeiden mukaisesti. Käsittelystä on sovittu tietosuoja-asetuksen 28 artiklan mukaisin sopimuksin.</p>
+      <p>Henkilötietoja ei luovuteta muille vastaanottajille.</p>
+
+      <h2>Tietoturva</h2>
+      <p>Käytämme asianmukaisia teknisiä ja organisatorisia suojatoimia henkilötietojen käsittelyn turvallisuuden varmistamiseksi, mukaan lukien palomuurien, salaustekniikoiden ja turvallisten laitetilojen käyttö, asianmukainen kulunvalvonta, tietojärjestelmien käyttäjätunnusten huolellinen hallinta sekä henkilötietojen käsittelyyn osallistuvan henkilöstön ohjeistaminen.</p>
 
       <h2>Siirrämmekö henkilötietoja kolmansiin maihin?</h2>
-      <p>Henkilötietoja ei siirretä EU:n ja Euroopan talousalueen (ETA) ulkopuolelle.</p>
+      <p>Henkilötietoja ei siirretä Euroopan unionin ja Euroopan talousalueen ulkopuolelle.</p>
+
+      <h2>Automaattinen päätöksenteko</h2>
+      <p>Käsittelyyn ei liity automaattista päätöksentekoa tai profilointia.</p>
 
       <h2>Mitkä ovat henkilötietojasi koskevat oikeudet?</h2>
       <p>Voit pyytää kaikkien tietojesi välitöntä poistamista milloin tahansa. <a href="/delete" style="color: var(--torium-red);">Poista tietoni →</a></p>
@@ -43,20 +51,21 @@ const updated = new Date().toLocaleDateString('fi-FI', { year: 'numeric', month:
         <li>oikeus tehdä valitus valvontaviranomaiselle</li>
       </ul>
 
-      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 40px 0;" />
-
-      <p><strong>Rekisterinpitäjä:</strong> Lumea Cloud Services Oy</p>
-      <p><strong>Yhteyshenkilö rekisteriä koskevissa asioissa:</strong> Mikael Hannolainen, <a href="mailto:mikael@lumea.fi" style="color: var(--torium-red);">mikael@lumea.fi</a></p>
-
       <p style="margin-top: 24px;"><strong>Kansallisen valvontaviranomaisen yhteystiedot:</strong></p>
       <p style="font-style: italic; color: #555;">
         Tietosuojavaltuutetun toimisto<br />
-        PL 800, Ratapihantie 9<br />
+        PL 800<br />
+        Ratapihantie 9<br />
         00521 Helsinki<br />
         p. 029 56 66700<br />
         <a href="mailto:tietosuoja@om.fi" style="color: var(--torium-red);">tietosuoja@om.fi</a><br />
         <a href="https://www.tietosuoja.fi" target="_blank" rel="noopener" style="color: var(--torium-red);">www.tietosuoja.fi</a>
       </p>
+
+      <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 40px 0;" />
+
+      <p><strong>Rekisterinpitäjä:</strong> Lumea Cloud Services Oy</p>
+      <p><strong>Yhteyshenkilö rekisteriä koskevissa asioissa:</strong> Mikael Hannolainen, <a href="mailto:mikael@lumea.fi" style="color: var(--torium-red);">mikael@lumea.fi</a></p>
     </main>
     <Footer />
   </div>

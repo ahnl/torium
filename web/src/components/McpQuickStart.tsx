@@ -253,6 +253,23 @@ export default function McpQuickStart() {
           Muutamassa minuutissa tekoälysi hallitsee Tori.fi-tilisi.
         </motion.p>
 
+        <div style={{
+          background: '#f8f8f8',
+          border: '1px solid #e5e5e5',
+          borderRadius: 8,
+          padding: '12px 16px',
+          marginBottom: 40,
+          fontSize: 13,
+          color: '#666',
+          lineHeight: 1.6,
+          display: 'flex',
+          gap: 10,
+          alignItems: 'flex-start',
+        }}>
+          <span style={{ color: '#aaa', fontSize: 15, flexShrink: 0, marginTop: 1 }}>ⓘ</span>
+          <span>Torium on ei-kaupallinen kolmannen osapuolen MCP-liitin, jolla ei ole Tori.fi:n virallista hyväksyntää. Käyttö tapahtuu ilman takuita ja täysin omalla vastuullasi. Vastaat itse Tori.fi:n käyttöehtojen noudattamisesta. Kehittäjät eivät ota vastuuta mahdollisista seurauksista, kuten tilisi sulkemisesta.</span>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}

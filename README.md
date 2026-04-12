@@ -2,7 +2,7 @@
 
 Python client for the Tori.fi marketplace. Usable as a **library**, a **CLI tool**, and an **MCP server**.
 
-## MCP Quick Start
+## MCP: Local install (stdio)
 
 **1. Clone and install:**
 
@@ -51,10 +51,40 @@ cd torium && git pull && uv tool install --reinstall .
 
 ---
 
+## MCP: Self-hosted remote server
+
+You can run `torium-mcp` as a remote HTTPS server that multiple users connect to via claude.ai connectors. Each user authenticates their own Tori.fi account through a one-time OAuth popup.
+
+By default, the server uses an email whitelist. You must allow each user before they can log in.
+
+**1. Allow your email (must be done before first login):**
+
+```bash
+torium-mcp allow you@example.com --note "your name"
+torium-mcp list-allowed    # see who has access
+torium-mcp revoke foo@example.com  # remove access
+```
+
+**2. Start the server:**
+
+```bash
+torium-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com
+```
+
+The `--base-url` must be the public HTTPS URL that claude.ai can reach (e.g. via a reverse proxy or SSH tunnel).
+
+**3. Add `https://tori.example.com/mcp` in claude.ai connectors.**
+
+Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted login, then copy the `fi.tori.www...` redirect URL from the browser console and paste it into the form. After that, Claude has a 180-day session, with no further logins needed until it expires.
+
+> Each user's Tori credentials are stored separately in SQLite (`~/.config/torium/mcp.db`). The local `~/.config/torium/credentials.json` file used by stdio mode is never touched by the remote server.
+
+---
+
 ## Authentication
 
 ```bash
-torium auth setup    # first-time OAuth login (see instructions in MCP Quick Start), saves refresh token
+torium auth setup    # first-time OAuth login (see MCP: Local install above), saves refresh token
 torium auth status   # show stored token info and expiry
 ```
 
@@ -131,7 +161,7 @@ torium favorites                     # list favorited items
 
 ## MCP Tools
 
-See [MCP Quick Start](#mcp-quick-start) above for setup. The following tools become available once the server is running:
+See [MCP: Local install (stdio)](#mcp-local-install-stdio) above for setup. The following tools become available once the server is running:
 
 
 | Tool                  | Description                                                                  |
@@ -206,34 +236,6 @@ categories = client.search.categories()
 # Favorites
 favs = client.favorites.list()
 ```
-
----
-
-## Remote MCP Server (claude.ai Connectors)
-
-You can run `torium-mcp` as a remote HTTPS server that multiple users connect to via claude.ai → Customize → Connectors. Each user authenticates their own Tori.fi account through a one-time OAuth popup.
-
-**1. Allow your email (must be done before first login):**
-
-```bash
-torium-mcp allow you@example.com --note "your name"
-torium-mcp list-allowed    # see who has access
-torium-mcp revoke foo@example.com  # remove access
-```
-
-**2. Start the server:**
-
-```bash
-torium-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com
-```
-
-The `--base-url` must be the public HTTPS URL that claude.ai can reach (e.g. via a reverse proxy or SSH tunnel).
-
-**3. Add `https://tori.example.com/mcp` in claude.ai → Customize → Connectors.**
-
-Claude opens a login popup. Click **Log in to Tori.fi**, complete the Schibsted login, then copy the `fi.tori.www...` redirect URL from the browser console and paste it into the form. After that, Claude has a 180-day session — no further logins needed until it expires.
-
-> Each user's Tori credentials are stored separately in SQLite (`~/.config/torium/mcp.db`). The local `~/.config/torium/credentials.json` file used by stdio mode is never touched by the remote server.
 
 ---
 

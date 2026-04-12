@@ -1,7 +1,17 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-const SELFHOST_STEPS = [
+interface Step {
+  n: string;
+  title: string;
+  code?: string;
+  note?: string;
+  content?: ReactNode;
+}
+
+const SELFHOST_STEPS: Step[] = [
   {
     n: '1',
     title: 'Kloonaa ja asenna',
@@ -23,6 +33,57 @@ const SELFHOST_STEPS = [
     n: '4',
     title: 'Käynnistä Claude Desktop uudelleen',
     note: 'Torium-työkalut ovat nyt käytettävissä.',
+  },
+];
+
+function RemoteConnectorFields() {
+  return (
+    <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14, lineHeight: 1.6 }}>
+      Mene{' '}
+      <a
+        href="https://claude.ai/settings/connectors"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: 'var(--torium-red)', textDecoration: 'none', fontWeight: 500 }}
+      >
+        claude.ai/settings/connectors
+      </a>{' '}
+      ja paina <strong>Add custom connector</strong>. Syötä palvelimesi URL (esim.{' '}
+      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>
+        https://tori.example.com/mcp
+      </code>
+      ) ja paina <strong>Add</strong>.
+    </p>
+  );
+}
+
+const REMOTE_SELFHOST_STEPS: Step[] = [
+  {
+    n: '1',
+    title: 'Kloonaa ja asenna',
+    code: `git clone https://github.com/ahnl/torium\nuv tool install ./torium`,
+  },
+  {
+    n: '2',
+    title: 'Salli sähköpostiosoitteesi',
+    code: `torium-mcp allow sinä@example.com --note "nimi"\ntorium-mcp list-allowed    # tarkista lista\ntorium-mcp revoke sinä@example.com  # poista oikeus`,
+    note: 'Tämä on tehtävä ennen ensimmäistä kirjautumista.',
+  },
+  {
+    n: '3',
+    title: 'Käynnistä palvelin',
+    code: `torium-mcp --transport streamable-http --host 127.0.0.1 --port 5001 --base-url https://tori.example.com`,
+    note: '--base-url on julkinen HTTPS-osoite, jonka claude.ai pystyy tavoittamaan (esim. käänteisproxylla tai SSH-tunnelilla).',
+  },
+  {
+    n: '4',
+    title: 'Lisää liitin claude.ai:hin',
+    content: <RemoteConnectorFields />,
+  },
+  {
+    n: '5',
+    title: 'Kirjaudu palvelimelle',
+    note: 'Claude avaa kirjautumisikkunan. Paina Log in to Tori.fi, tee Schibsted-kirjautuminen ja kopioi fi.tori.www...-ohjausURL selaimen konsolista. Liitä se lomakkeeseen. Istunto on voimassa 180 päivää.',
   },
 ];
 
@@ -104,6 +165,32 @@ function ConnectorFields() {
   );
 }
 
+function SelfhostStepList({ steps }: { steps: Step[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {steps.map((step) => (
+        <div key={step.n} style={{ display: 'flex', gap: 20 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            border: '2px solid var(--torium-red)', color: 'var(--torium-red)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
+            fontSize: 13, flexShrink: 0, marginTop: 3,
+          }}>
+            {step.n}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ margin: 0, fontSize: 17 }}>{step.title}</h3>
+            {step.note && <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14 }}>{step.note}</p>}
+            {step.code && <CodeBlock code={step.code} />}
+            {step.content && step.content}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function McpQuickStart() {
   const primarySteps = [
     {
@@ -166,101 +253,118 @@ export default function McpQuickStart() {
           Muutamassa minuutissa tekoälysi hallitsee Tori.fi-tilisi.
         </motion.p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-          {primarySteps.map((step, i) => (
-            <motion.div
-              key={step.n}
-              initial={{ opacity: 0, x: -16 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.07 }}
-              style={{ display: 'flex', gap: 20 }}
-            >
-              <div style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: 'var(--torium-red)', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
-                fontSize: 15, flexShrink: 0, marginTop: 3,
-              }}>
-                {step.n}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h3 style={{ margin: 0 }}>{step.title}</h3>
-                {step.content}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Collapsibles: video + self-hosting */}
         <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4, delay: 0.28 }}
-          style={{ marginTop: 56 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <details style={{ borderTop: '1px solid #e5e5e5', padding: '16px 0' }}>
-            <summary style={{
-              cursor: 'pointer', fontSize: 15, fontWeight: 500,
-              color: '#444', userSelect: 'none', listStyle: 'none',
-              display: 'flex', alignItems: 'center', gap: 8,
+          <Tabs defaultValue="julkinen">
+            <TabsList style={{
+              background: '#e8e8e8', padding: 4,
+              borderRadius: 10, gap: 2, height: 'auto',
+              display: 'inline-flex', marginBottom: 40,
             }}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 20, height: 20, borderRadius: '50%',
-                border: '1px solid #ccc', color: '#888', fontSize: 11, flexShrink: 0,
-              }}>▶</span>
-              Ohjevideo
-            </summary>
-            <div style={{ marginTop: 20 }}>
-              <video
-                src="/setup.mp4"
-                controls
-                style={{
-                  width: '100%', borderRadius: 10,
-                  background: '#000', display: 'block',
-                }}
-              />
-            </div>
-          </details>
+              <TabsTrigger
+                value="julkinen"
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <span style={{ marginRight: 6 }}>☁️</span> torium.fi
+              </TabsTrigger>
+              <TabsTrigger
+                value="itsehostaus"
+                style={{ borderRadius: 7, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                <span style={{ marginRight: 6 }}>🖥️</span> Itsehostaus
+              </TabsTrigger>
+            </TabsList>
 
-          <details style={{ borderTop: '1px solid #e5e5e5', padding: '16px 0' }}>
-            <summary style={{
-              cursor: 'pointer', fontSize: 15, fontWeight: 500,
-              color: '#444', userSelect: 'none', listStyle: 'none',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 20, height: 20, borderRadius: '50%',
-                border: '1px solid #ccc', color: '#888', fontSize: 11, flexShrink: 0,
-              }}>▶</span>
-              Itsehostaus: asenna paikallisesti tai omalle palvelimelle
-            </summary>
-            <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 28 }}>
-              {SELFHOST_STEPS.map((step) => (
-                <div key={step.n} style={{ display: 'flex', gap: 20 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%',
-                    border: '2px solid var(--torium-red)', color: 'var(--torium-red)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
-                    fontSize: 13, flexShrink: 0, marginTop: 3,
-                  }}>
-                    {step.n}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ margin: 0, fontSize: 17 }}>{step.title}</h3>
-                    {step.note && <p style={{ color: '#666', margin: '6px 0 0', fontSize: 14 }}>{step.note}</p>}
-                    {step.code && <CodeBlock code={step.code} />}
-                  </div>
+            <TabsContent value="julkinen">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                {primarySteps.map((step, i) => (
+                  <motion.div
+                    key={step.n}
+                    initial={{ opacity: 0, x: -16 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: i * 0.07 }}
+                    style={{ display: 'flex', gap: 20 }}
+                  >
+                    <div style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      background: 'var(--torium-red)', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
+                      fontSize: 15, flexShrink: 0, marginTop: 3,
+                    }}>
+                      {step.n}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h3 style={{ margin: 0 }}>{step.title}</h3>
+                      {step.content}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <details style={{ borderTop: '1px solid #e5e5e5', padding: '16px 0', marginTop: 40 }}>
+                <summary style={{
+                  cursor: 'pointer', fontSize: 15, fontWeight: 500,
+                  color: '#444', userSelect: 'none', listStyle: 'none',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 20, height: 20, borderRadius: '50%',
+                    border: '1px solid #ccc', color: '#888', fontSize: 11, flexShrink: 0,
+                  }}>▶</span>
+                  Ohjevideo
+                </summary>
+                <div style={{ marginTop: 20 }}>
+                  <video
+                    src="/setup.mp4"
+                    controls
+                    style={{
+                      width: '100%', borderRadius: 10,
+                      background: '#000', display: 'block',
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
-          </details>
+              </details>
+            </TabsContent>
+
+            <TabsContent value="itsehostaus">
+              <Tabs defaultValue="paikallinen">
+                <TabsList style={{
+                  background: '#ebebeb', padding: 3,
+                  borderRadius: 8, gap: 2, height: 'auto',
+                  display: 'inline-flex', marginBottom: 32,
+                }}>
+                  <TabsTrigger
+                    value="paikallinen"
+                    style={{ borderRadius: 6, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Paikallinen (stdio)
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="etapalvelin"
+                    style={{ borderRadius: 6, padding: '6px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Etäpalvelin
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="paikallinen">
+                  <SelfhostStepList steps={SELFHOST_STEPS} />
+                </TabsContent>
+
+                <TabsContent value="etapalvelin">
+                  <SelfhostStepList steps={REMOTE_SELFHOST_STEPS} />
+                </TabsContent>
+              </Tabs>
+            </TabsContent>
+          </Tabs>
         </motion.div>
+
       </div>
     </section>
 

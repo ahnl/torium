@@ -28,8 +28,11 @@ Claude Desktop config (~/Library/Application Support/Claude/claude_desktop_confi
 import html
 import json
 import os
+import secrets
 import sys
+import time
 import urllib.parse
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -54,6 +57,8 @@ _FAVICON_PNG = (_ASSETS / "favicon.png").read_bytes()
 _storage: Optional["Storage"] = None           # type: ignore[name-defined]
 _client_cache: dict[int, "ToriClient"] = {}    # type: ignore[name-defined]
 _auth_provider = None
+
+TEMP_IMAGE_DIR = os.path.expanduser("~/.config/torium/tmp-images")
 
 
 def _get_client():
@@ -102,6 +107,25 @@ def _get_client():
     return _client_cache[user_id]
 
 
+def _resolve_user_id() -> str:
+    """Return the tori user_id for the current request (HTTP mode only)."""
+    if _storage is None:
+        raise RuntimeError("get_upload_url is only available in remote HTTP mode")
+    from mcp.server.auth.middleware.auth_context import get_access_token
+    access = get_access_token()
+    if access is None:
+        raise RuntimeError("No authenticated user in request context")
+    row = _storage.get_mcp_access(access.token)
+    if row is None:
+        raise RuntimeError("Access token not found in storage")
+    return str(row["user_id"])
+
+
+def _make_upload_url(upload_token: str) -> str:
+    base = os.environ.get("TORIUM_BASE_URL", "https://torium.fi")
+    return f"{base}/upload/{upload_token}"
+
+
 mcp = FastMCP("torium", instructions=(
     "Access the user's Tori.fi marketplace account. "
     "Can read listings, conversations, messages, favorites, and perform actions like "
@@ -118,7 +142,12 @@ mcp = FastMCP("torium", instructions=(
     "Visual HTML artifacts: use fetch_image_base64 to get a data URI and embed it in "
     "an HTML artifact with <img src=\"...\"> when showing a listing visually would help "
     "the user — e.g. a gallery of search results, a listing detail card, or a side-by-side "
-    "comparison. fetch_image_base64 is for rendering; fetch_image is for vision inspection."
+    "comparison. fetch_image_base64 is for rendering; fetch_image is for vision inspection.\n\n"
+    "Creating listings with images (remote/HTTP mode):\n"
+    "1. For each image file, call get_upload_url() to get a presigned upload_url and image_id.\n"
+    "2. Upload the file using bash: curl -s -X PUT --data-binary @/path/to/file.jpg \"<upload_url>\"\n"
+    "3. Collect all image_ids and pass them comma-separated to create_listing(image_ids=...).\n"
+    "In stdio/local mode, use create_listing(image_paths=...) directly instead."
 ))
 
 
@@ -228,6 +257,38 @@ def delete_listing(ad_id: int) -> str:
 
 
 @mcp.tool()
+def get_upload_url(filename: str = "image.jpg") -> str:
+    """
+    Get a presigned upload URL for a single image file.
+
+    Call this once per image BEFORE calling create_listing.
+    Then upload the image file directly to the returned upload_url using HTTP PUT:
+        curl -s -X PUT --data-binary @/path/to/photo.jpg "<upload_url>"
+    Finally pass the returned image_id to create_listing's image_ids parameter.
+
+    The upload URL is valid for 30 minutes.
+
+    Example workflow for 2 images:
+        r1 = get_upload_url("photo1.jpg")
+        curl -s -X PUT --data-binary @/path/photo1.jpg <r1.upload_url>
+        r2 = get_upload_url("photo2.jpg")
+        curl -s -X PUT --data-binary @/path/photo2.jpg <r2.upload_url>
+        create_listing(..., image_ids="<r1.image_id>,<r2.image_id>")
+    """
+    user_id = _resolve_user_id()
+    image_id = str(uuid.uuid4())
+    upload_token = secrets.token_urlsafe(32)
+    os.makedirs(TEMP_IMAGE_DIR, exist_ok=True)
+    file_path = os.path.join(TEMP_IMAGE_DIR, f"{image_id}.jpg")
+    upload_url = _make_upload_url(upload_token)
+
+    _storage.cleanup_old_temp_images()  # type: ignore[union-attr]
+    _storage.register_temp_image(image_id, upload_token, user_id, file_path, "image/jpeg")  # type: ignore[union-attr]
+
+    return json.dumps({"image_id": image_id, "upload_url": upload_url})
+
+
+@mcp.tool()
 def create_listing(
     title: str,
     description: str,
@@ -237,39 +298,35 @@ def create_listing(
     condition: str = "2",
     trade_type: str = "1",
     image_paths: str = "",
-    images_base64: str = "",
+    image_ids: str = "",
 ) -> str:
     """
     Create and publish a new free (Basic) listing on Tori.fi.
 
-    title:         Listing title.
-    description:   Listing description.
-    price:         Price in euros (integer). Use 0 for free items.
-    category:      Tori category ID as a string. Use get_create_categories() to find IDs.
-    postal_code:   Finnish postal code, e.g. "96100".
-    condition:     "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
-    trade_type:    "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
-    image_paths:   Comma-separated absolute local file paths. Works only when the MCP
-                   server runs as a local stdio process on the same machine as the files.
-                   e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
-    images_base64: Comma-separated base64 data URIs. Use this when the MCP server is
-                   remote (e.g. https://torium.fi/mcp). Provide only one of image_paths
-                   or images_base64.
-                   e.g. "data:image/jpeg;base64,/9j/4AAQ...,data:image/jpeg;base64,..."
+    title:       Listing title.
+    description: Listing description.
+    price:       Price in euros (integer). Use 0 for free items.
+    category:    Tori category ID as a string. Use get_create_categories() to find IDs.
+    postal_code: Finnish postal code, e.g. "96100".
+    condition:   "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
+    trade_type:  "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
+    image_paths: Comma-separated absolute local file paths. Works only when the MCP
+                 server runs as a local stdio process on the same machine as the files.
+                 e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
+    image_ids:   Comma-separated image IDs from get_upload_url(). Use in remote/HTTP
+                 mode after uploading each file to its presigned upload_url.
+                 e.g. "abc123,def456"
     """
-    import base64
-
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
 
-    decoded_images: list[bytes] = []
-    if images_base64:
-        for entry in images_base64.split(",data:"):
-            entry = entry if entry.startswith("data:") else "data:" + entry
+    image_bytes_list: list[bytes] = []
+    if image_ids and _storage is not None:
+        user_id = _resolve_user_id()
+        for iid in [i.strip() for i in image_ids.split(",") if i.strip()]:
             try:
-                _, b64 = entry.split(";base64,", 1)
-                decoded_images.append(base64.b64decode(b64))
-            except Exception:
-                return f"Error: could not decode base64 image: {entry[:40]}..."
+                image_bytes_list.append(_storage.consume_temp_image(iid, user_id))
+            except ValueError as e:
+                return f"Error: {e}"
 
     result = _get_client().listings.create(
         title=title,
@@ -280,7 +337,7 @@ def create_listing(
         condition=condition,
         trade_type=trade_type,
         image_paths=paths,
-        image_bytes=decoded_images,
+        image_bytes=image_bytes_list,
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):
@@ -831,6 +888,34 @@ _LOGIN_PAGE = """\
 
 
 _GIT_COMMIT = os.environ.get("GIT_COMMIT", "unknown")
+
+
+@mcp.custom_route("/upload/{upload_token}", methods=["PUT", "POST"])
+async def _receive_upload(request: Request):
+    from starlette.responses import Response
+
+    if _storage is None:
+        return Response("not available in stdio mode", status_code=404)
+
+    upload_token = request.path_params["upload_token"]
+    row = _storage.get_temp_image_by_token(upload_token)
+    if not row or row["used"]:
+        return Response("not found", status_code=404)
+
+    if time.time() > row["created_at"] + 1800:
+        return Response("upload URL expired", status_code=403)
+
+    content_length = int(request.headers.get("content-length", 0))
+    if content_length > 15 * 1024 * 1024:
+        return Response("too large", status_code=413)
+
+    data = await request.body()
+    os.makedirs(TEMP_IMAGE_DIR, exist_ok=True)
+    with open(row["file_path"], "wb") as f:
+        f.write(data)
+
+    _storage.mark_temp_image_uploaded(row["image_id"])
+    return Response("ok", status_code=200)
 
 
 @mcp.custom_route("/", methods=["GET"])

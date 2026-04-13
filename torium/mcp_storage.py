@@ -70,6 +70,18 @@ CREATE TABLE IF NOT EXISTS deletion_tokens (
     created_at REAL NOT NULL,
     used       INTEGER NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS temp_images (
+    image_id      TEXT PRIMARY KEY,
+    upload_token  TEXT NOT NULL,
+    user_id       TEXT NOT NULL,
+    file_path     TEXT NOT NULL,
+    mime_type     TEXT NOT NULL,
+    created_at    REAL NOT NULL,
+    uploaded      INTEGER DEFAULT 0,
+    used          INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS temp_images_token ON temp_images(upload_token);
 """
 
 
@@ -267,6 +279,60 @@ class Storage:
                     "UPDATE deletion_tokens SET used=1 WHERE token=?", (token,)
                 )
         return row["email"]
+
+    # ── Temp images (presigned upload) ────────────────────────────────────────
+
+    def register_temp_image(self, image_id: str, upload_token: str, user_id: str, file_path: str, mime: str) -> None:
+        with self._lock:
+            with self._conn:
+                self._conn.execute(
+                    "INSERT INTO temp_images (image_id, upload_token, user_id, file_path, mime_type, created_at) "
+                    "VALUES (?,?,?,?,?,?)",
+                    (image_id, upload_token, user_id, file_path, mime, time.time()),
+                )
+
+    def get_temp_image_by_token(self, upload_token: str) -> Optional[dict]:
+        row = self._conn.execute(
+            "SELECT image_id, user_id, file_path, created_at, uploaded, used "
+            "FROM temp_images WHERE upload_token=?",
+            (upload_token,),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def mark_temp_image_uploaded(self, image_id: str) -> None:
+        with self._lock:
+            with self._conn:
+                self._conn.execute("UPDATE temp_images SET uploaded=1 WHERE image_id=?", (image_id,))
+
+    def consume_temp_image(self, image_id: str, user_id: str) -> bytes:
+        row = self._conn.execute(
+            "SELECT file_path FROM temp_images WHERE image_id=? AND user_id=? AND uploaded=1 AND used=0",
+            (image_id, user_id),
+        ).fetchone()
+        if not row:
+            raise ValueError(f"image_id {image_id!r} not found, not uploaded yet, or already used")
+        with open(row["file_path"], "rb") as f:
+            data = f.read()
+        with self._lock:
+            with self._conn:
+                self._conn.execute("UPDATE temp_images SET used=1 WHERE image_id=?", (image_id,))
+        return data
+
+    def cleanup_old_temp_images(self, max_age_seconds: int = 3600) -> None:
+        cutoff = time.time() - max_age_seconds
+        rows = self._conn.execute(
+            "SELECT file_path FROM temp_images WHERE created_at < ? OR used=1", (cutoff,)
+        ).fetchall()
+        for row in rows:
+            try:
+                os.unlink(row["file_path"])
+            except FileNotFoundError:
+                pass
+        with self._lock:
+            with self._conn:
+                self._conn.execute("DELETE FROM temp_images WHERE created_at < ? OR used=1", (cutoff,))
+
+    # ── User data deletion ─────────────────────────────────────────────────────
 
     def delete_user_data(self, email: str) -> bool:
         """Delete all session and token data for a user by email. Returns True if any rows deleted."""

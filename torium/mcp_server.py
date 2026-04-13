@@ -909,7 +909,7 @@ async def _receive_upload(request: Request):
         return Response("upload URL expired", status_code=403)
 
     content_length = int(request.headers.get("content-length", 0))
-    if content_length > 15 * 1024 * 1024:
+    if content_length > 30 * 1024 * 1024:
         return Response("too large", status_code=413)
 
     data = await request.body()

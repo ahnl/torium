@@ -237,21 +237,40 @@ def create_listing(
     condition: str = "2",
     trade_type: str = "1",
     image_paths: str = "",
+    images_base64: str = "",
 ) -> str:
     """
     Create and publish a new free (Basic) listing on Tori.fi.
 
-    title:        Listing title.
-    description:  Listing description.
-    price:        Price in euros (integer). Use 0 for free items.
-    category:     Tori category ID as a string. Use get_create_categories() to find IDs.
-    postal_code:  Finnish postal code, e.g. "96100".
-    condition:    "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
-    trade_type:   "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
-    image_paths:  Comma-separated absolute paths to local image files (JPEG/PNG).
-                  e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
+    title:         Listing title.
+    description:   Listing description.
+    price:         Price in euros (integer). Use 0 for free items.
+    category:      Tori category ID as a string. Use get_create_categories() to find IDs.
+    postal_code:   Finnish postal code, e.g. "96100".
+    condition:     "1"=Uusi, "2"=Kuin uusi (default), "3"=Hyvä, "4"=Tyydyttävä.
+    trade_type:    "1"=Myydään (default), "2"=Ostetaan, "3"=Annetaan.
+    image_paths:   Comma-separated absolute local file paths. Works only when the MCP
+                   server runs as a local stdio process on the same machine as the files.
+                   e.g. "/Users/me/photo1.jpg,/Users/me/photo2.jpg"
+    images_base64: Comma-separated base64 data URIs. Use this when the MCP server is
+                   remote (e.g. https://torium.fi/mcp). Provide only one of image_paths
+                   or images_base64.
+                   e.g. "data:image/jpeg;base64,/9j/4AAQ...,data:image/jpeg;base64,..."
     """
+    import base64
+
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
+
+    decoded_images: list[bytes] = []
+    if images_base64:
+        for entry in images_base64.split(",data:"):
+            entry = entry if entry.startswith("data:") else "data:" + entry
+            try:
+                _, b64 = entry.split(";base64,", 1)
+                decoded_images.append(base64.b64decode(b64))
+            except Exception:
+                return f"Error: could not decode base64 image: {entry[:40]}..."
+
     result = _get_client().listings.create(
         title=title,
         description=description,
@@ -261,6 +280,7 @@ def create_listing(
         condition=condition,
         trade_type=trade_type,
         image_paths=paths,
+        image_bytes=decoded_images,
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):

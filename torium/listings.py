@@ -187,6 +187,7 @@ class ListingsAPI:
         condition: str = "2",
         trade_type: str = "1",
         image_paths: Optional[List[str]] = None,
+        image_bytes: Optional[List[bytes]] = None,
         dry_run: bool = False,
     ) -> dict:
         """
@@ -215,17 +216,22 @@ class ListingsAPI:
         # does not work because the draft never auto-populates multi_image.
         multi_image = []
         image_list = []
-        if image_paths:
-            # Read each file once: extract dimensions and upload in the same pass
+        all_image_data: list[bytes] = []
+        for img_path in (image_paths or []):
+            with open(img_path, "rb") as f:
+                all_image_data.append(f.read())
+        for data in (image_bytes or []):
+            all_image_data.append(data)
+
+        if all_image_data:
+            # Upload each image: extract dimensions and upload in the same pass
             entries = []  # (location, width, height)
-            for img_path in image_paths:
-                with open(img_path, "rb") as f:
-                    data = f.read()
+            for data in all_image_data:
                 w, h = _image_dimensions(data)
                 loc = self._c.adinput_upload_image(ad_id, data, "image/jpg")
                 if not loc:
                     raise RuntimeError(
-                        f"Upload of {img_path} returned no location. Draft ad {ad_id} was NOT published."
+                        f"Image upload returned no location. Draft ad {ad_id} was NOT published."
                     )
                 entries.append((loc, w, h))
 

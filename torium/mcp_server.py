@@ -319,6 +319,9 @@ def create_listing(
     """
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
 
+    if _storage is not None:
+        _storage.cleanup_old_temp_images()
+
     image_bytes_list: list[bytes] = []
     if image_ids and _storage is not None:
         user_id = _resolve_user_id()

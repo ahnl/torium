@@ -145,8 +145,15 @@ mcp = FastMCP("torium", instructions=(
     "comparison. fetch_image_base64 is for rendering; fetch_image is for vision inspection.\n\n"
     "Creating listings with images (remote/HTTP mode):\n"
     "1. For each image file, call get_upload_url() to get a presigned upload_url and image_id.\n"
-    "2. Upload the file using bash: curl -s -X PUT --data-binary @/path/to/file.jpg \"<upload_url>\"\n"
-    "3. Collect all image_ids and pass them comma-separated to create_listing(image_ids=...).\n"
+    "2. Upload the files using bash curl. To avoid execution timeouts, upload in batches of at\n"
+    "   most 5 files per bash call — do not upload all files in a single long-running call.\n"
+    "   Run each batch as a separate bash execution, e.g.:\n"
+    "     curl -s -X PUT --data-binary @img1.jpg \"<url1>\"\n"
+    "     curl -s -X PUT --data-binary @img2.jpg \"<url2>\"\n"
+    "     curl -s -X PUT --data-binary @img3.jpg \"<url3>\"\n"
+    "   Verify every curl returned 'ok' before proceeding to the next batch.\n"
+    "3. Only call create_listing once ALL uploads are confirmed successful.\n"
+    "   Pass all image_ids comma-separated to create_listing(image_ids=...).\n"
     "In stdio/local mode, use create_listing(image_paths=...) directly instead."
 ))
 

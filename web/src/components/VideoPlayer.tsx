@@ -49,11 +49,12 @@ const controlBtnStyle: React.CSSProperties = {
 
 interface VideoPlayerProps {
   src: string;
+  poster?: string;
   autoPlay?: boolean;
   loop?: boolean;
 }
 
-export default function VideoPlayer({ src, autoPlay = false, loop = false }: VideoPlayerProps) {
+export default function VideoPlayer({ src, poster, autoPlay = false, loop = false }: VideoPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -158,6 +159,7 @@ export default function VideoPlayer({ src, autoPlay = false, loop = false }: Vid
       <video
         ref={videoRef}
         src={src}
+        poster={poster}
         autoPlay={autoPlay}
         muted={autoPlay}
         loop={loop}

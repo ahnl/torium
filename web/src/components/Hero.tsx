@@ -55,7 +55,7 @@ export default function Hero() {
           boxShadow: '0 8px 48px rgba(0,0,0,0.13)',
           background: '#111',
         }}>
-          <VideoPlayer src="/demo.mp4" autoPlay loop />
+          <VideoPlayer src="/demo.mp4" poster="/demo-poster.jpg" autoPlay loop />
         </div>
       </motion.div>
     </section>

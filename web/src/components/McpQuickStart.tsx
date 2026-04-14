@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import VideoPlayer from './VideoPlayer';
 
 interface Step {
   n: string;
@@ -336,15 +337,11 @@ export default function McpQuickStart() {
                   }}>▶</span>
                   Ohjevideo
                 </summary>
-                <div style={{ marginTop: 20 }}>
-                  <video
-                    src="/setup.mp4"
-                    controls
-                    style={{
-                      width: '100%', borderRadius: 10,
-                      background: '#000', display: 'block',
-                    }}
-                  />
+                <div style={{
+                  marginTop: 20, borderRadius: 10, overflow: 'hidden',
+                  background: '#000',
+                }}>
+                  <VideoPlayer src="/setup.mp4" />
                 </div>
               </details>
             </TabsContent>

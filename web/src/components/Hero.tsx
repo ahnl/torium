@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import VideoPlayer from './VideoPlayer';
 
 export default function Hero() {
   return (
@@ -53,12 +54,8 @@ export default function Hero() {
           borderRadius: 12, overflow: 'hidden',
           boxShadow: '0 8px 48px rgba(0,0,0,0.13)',
           background: '#111',
-          aspectRatio: '16/9',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#666', fontSize: 14,
         }}>
-          {/* Replace with <video> or <iframe> when demo video is ready */}
-          <span>Demo-video tulossa pian</span>
+          <VideoPlayer src="/demo.mp4" autoPlay loop />
         </div>
       </motion.div>
     </section>

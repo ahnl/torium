@@ -668,8 +668,15 @@ def delete_saved_search(saved_search_id: int) -> str:
 
 # ── Images ────────────────────────────────────────────────────────────────────
 
+_ALLOWED_IMAGE_HOSTS = {"img.tori.net"}
+
+
 def _fetch_raw(url: str) -> tuple[bytes, str]:
-    """Fetch image bytes and mime type."""
+    """Fetch image bytes and mime type.  Only img.tori.net is allowed."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or parsed.hostname not in _ALLOWED_IMAGE_HOSTS:
+        raise ValueError(f"URL not allowed — only {_ALLOWED_IMAGE_HOSTS} hosts are permitted")
     resp = requests.get(url, timeout=15)
     resp.raise_for_status()
     mime = resp.headers.get("content-type", "image/jpeg").split(";")[0].strip()

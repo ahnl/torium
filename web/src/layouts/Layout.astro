@@ -44,5 +44,13 @@ const fullTitle = title.includes('Torium') ? title : `${title} · Torium`;
 </head>
 <body>
   <slot />
+  <script>
+    import { init } from '@plausible-analytics/tracker';
+
+    init({
+      domain: 'torium.fi',
+      endpoint: 'https://plausible.lumea.fi/api/event',
+    });
+  </script>
 </body>
 </html>

@@ -50,10 +50,6 @@ from starlette.responses import HTMLResponse, RedirectResponse
 #   per request would force 3 Schibsted auth round-trips on every tool call.
 # _auth_provider: ToriMCPAuthProvider; set in _cmd() for HTTP transports.
 
-_ASSETS = Path(__file__).parent
-_FAVICON_ICO = (_ASSETS / "favicon.ico").read_bytes()
-_FAVICON_PNG = (_ASSETS / "favicon.png").read_bytes()
-
 _storage: Optional["Storage"] = None           # type: ignore[name-defined]
 _client_cache: dict[int, "ToriClient"] = {}    # type: ignore[name-defined]
 _auth_provider = None
@@ -944,17 +940,6 @@ async def _frontpage(request: Request) -> HTMLResponse:
 </html>
 """)
 
-
-@mcp.custom_route("/favicon.ico", methods=["GET"])
-async def _favicon_ico(request: Request):
-    from starlette.responses import Response
-    return Response(content=_FAVICON_ICO, media_type="image/x-icon")
-
-
-@mcp.custom_route("/favicon.png", methods=["GET"])
-async def _favicon_png(request: Request):
-    from starlette.responses import Response
-    return Response(content=_FAVICON_PNG, media_type="image/png")
 
 
 _DELETE_CONFIRM_PAGE = """\

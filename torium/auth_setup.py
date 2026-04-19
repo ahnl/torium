@@ -9,7 +9,7 @@ logging in, the browser will show a "can't open" error. Copy the full URL
 from the address bar and paste it into the terminal.
 """
 
-import os, secrets, shutil, subprocess, sys, time
+import base64, hashlib, json, os, secrets, shutil, subprocess, sys, time
 import urllib.parse, webbrowser
 
 import requests

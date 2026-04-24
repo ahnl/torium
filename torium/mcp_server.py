@@ -736,6 +736,8 @@ _LOGIN_PAGE = """\
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <script defer data-domain="torium.fi" data-api="https://plausible.lumea.fi/api/event" src="https://plausible.lumea.fi/js/script.js"></script>
+  <script>window.plausible = window.plausible || function() {{ (window.plausible.q = window.plausible.q || []).push(arguments) }}</script>
   <style>
     :root {{
       --purple: #9333ea;
@@ -889,7 +891,7 @@ _LOGIN_PAGE = """\
         placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&state=..."
         required></textarea>
       <button class="btn" type="submit"
-        onclick="this.disabled=true;this.textContent='Yhdistetään\u2026';this.form.submit()">
+        onclick="window.plausible&&window.plausible('OAuth Completed');this.disabled=true;this.textContent='Yhdistetään\u2026';this.form.submit()">
         Yhdistä
       </button>
     </form>

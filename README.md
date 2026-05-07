@@ -178,6 +178,7 @@ See [MCP: Local install (stdio)](#mcp-local-install-stdio) above for setup. The 
 | `create_listing`      | Create and publish a new free listing                                        |
 | `dispose_listing`     | Mark a listing as sold                                                       |
 | `delete_listing`      | Permanently delete a listing                                                 |
+| `republish_listing`   | Republish an expired listing as Basic (free)                                 |
 | `edit_listing`        | Edit price, title, or description of a listing                               |
 | `get_unread_count`    | Total unread messages                                                        |
 | `list_conversations`  | Inbox with unread counts                                                     |

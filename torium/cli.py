@@ -10,6 +10,7 @@ Commands:
   torium listings stats ID       Show clicks/messages/favorites for a listing
   torium listings dispose ID     Mark a listing as sold
   torium listings delete ID      Delete a listing (asks for confirmation)
+  torium listings republish ID   Republish an expired listing as Basic (free)
   torium listings edit ID        Edit listing fields (--price, --title, --description)
   torium listings create         Create and publish a new listing
 
@@ -193,6 +194,18 @@ def listings_delete(
     with console.status(f"Deleting {ad_id}..."):
         client.listings.delete(ad_id)
     rprint(f"[green]✓ Listing {ad_id} deleted.[/green]")
+
+
+@listings_app.command("republish")
+def listings_republish(ad_id: int = typer.Argument(..., help="Listing ID")):
+    """Republish an expired listing (julkaise uudelleen) as Basic (free)."""
+    client = get_client()
+    with console.status(f"Republishing {ad_id}..."):
+        result = client.listings.republish(ad_id)
+    if result.get("is-completed"):
+        rprint(f"[green]✓ Listing {ad_id} republished.[/green] https://www.tori.fi/{ad_id}")
+    else:
+        rprint(f"[yellow]⚠ Republish requested for {ad_id}, status unclear:[/yellow] {result}")
 
 
 @listings_app.command("edit")

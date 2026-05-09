@@ -33,7 +33,7 @@ const TOOL_CATEGORIES = [
   {
     icon: '✏️',
     title: 'Ilmoitusten hallinta',
-    tools: ['Luo ilmoitus', 'Muokkaa ilmoitusta', 'Merkitse myydyksi', 'Poista ilmoitus', 'Näyttökerrat ja tilastot'],
+    tools: ['Luo ilmoitus', 'Muokkaa ilmoitusta', 'Julkaise uudelleen', 'Merkitse myydyksi', 'Poista ilmoitus', 'Näyttökerrat ja tilastot'],
   },
   {
     icon: '💬',

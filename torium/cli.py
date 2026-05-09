@@ -5,11 +5,13 @@ Commands:
   torium auth setup              One-time browser OAuth flow, saves refresh token
   torium auth status             Show stored credentials info
 
-  torium listings                List active listings
+  torium listings                List active listings (default 50)
   torium listings --facet FACET  Filter by state (ACTIVE/EXPIRED/DRAFT/DISPOSED/ALL)
+  torium listings --limit N      Show up to N listings; auto-paginates above 50
   torium listings stats ID       Show clicks/messages/favorites for a listing
   torium listings dispose ID     Mark a listing as sold
   torium listings delete ID      Delete a listing (asks for confirmation)
+  torium listings republish ID   Republish an expired listing as Basic (free)
   torium listings edit ID        Edit listing fields (--price, --title, --description)
   torium listings create         Create and publish a new listing
 
@@ -118,16 +120,35 @@ def auth_status():
 def listings_default(
     ctx: typer.Context,
     facet: Optional[str] = typer.Option(None, "--facet", "-f", help="Filter: ACTIVE EXPIRED DRAFT DISPOSED ALL"),
+    limit: int = typer.Option(50, "--limit", "-n", help="Max listings to show (auto-paginates above 50)."),
 ):
     """List your Tori.fi listings."""
     if ctx.invoked_subcommand is not None:
         return
+    if limit < 1:
+        rprint("[red]--limit must be at least 1[/red]")
+        raise typer.Exit(1)
     client = get_client()
-    with console.status("Fetching listings..."):
-        data = client.listings.search(facet=facet)
 
-    summaries = data.get("summaries", [])
-    facets = data.get("facets", [])
+    summaries: list = []
+    first_page: Optional[dict] = None
+    offset = 0
+    with console.status("Fetching listings...") as status:
+        while len(summaries) < limit:
+            page_size = min(50, limit - len(summaries))
+            page = client.listings.search(facet=facet, limit=page_size, offset=offset)
+            if first_page is None:
+                first_page = page
+            page_summaries = page.get("summaries", [])
+            if not page_summaries:
+                break
+            summaries.extend(page_summaries)
+            if len(page_summaries) < page_size:
+                break  # last page reached
+            offset += len(page_summaries)
+            status.update(f"Fetching listings... ({len(summaries)} so far)")
+
+    facets = (first_page or {}).get("facets", [])
 
     if facets:
         parts = [f"{f['label']} [bold]{f['total']}[/bold]" for f in facets]
@@ -139,10 +160,11 @@ def listings_default(
         return
 
     table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
-    table.add_column("ID", style="dim", width=10)
+    table.add_column("ID", style="dim", no_wrap=True)
     table.add_column("Title", no_wrap=True)
     table.add_column("Type", width=9)
     table.add_column("State", width=12)
+    table.add_column("Updated", width=10, no_wrap=True)
     table.add_column("Clicks", justify="right", width=7)
     table.add_column("Favorites", justify="right", width=9)
 
@@ -154,7 +176,9 @@ def listings_default(
         title = s.get("data", {}).get("title", str(s.get("id")))
         subtitle = s.get("data", {}).get("subtitle", "")
         ad_type = _ad_type_from_subtitle(subtitle)
-        table.add_row(str(s["id"]), title, ad_type, state, str(clicks), str(favs))
+        updated_iso = s.get("updated", "") or ""
+        updated_date = updated_iso[:10] if updated_iso else "-"
+        table.add_row(str(s["id"]), title, ad_type, state, updated_date, str(clicks), str(favs))
 
     console.print(table)
 
@@ -193,6 +217,18 @@ def listings_delete(
     with console.status(f"Deleting {ad_id}..."):
         client.listings.delete(ad_id)
     rprint(f"[green]✓ Listing {ad_id} deleted.[/green]")
+
+
+@listings_app.command("republish")
+def listings_republish(ad_id: int = typer.Argument(..., help="Listing ID")):
+    """Republish an expired listing (julkaise uudelleen) as Basic (free)."""
+    client = get_client()
+    with console.status(f"Republishing {ad_id}..."):
+        result = client.listings.republish(ad_id)
+    if result.get("is-completed"):
+        rprint(f"[green]✓ Listing {ad_id} republished.[/green] https://www.tori.fi/{ad_id}")
+    else:
+        rprint(f"[yellow]⚠ Republish requested for {ad_id}, status unclear:[/yellow] {result}")
 
 
 @listings_app.command("edit")

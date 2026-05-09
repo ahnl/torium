@@ -16,6 +16,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import re
 import requests
 import struct
 import time
@@ -301,13 +302,25 @@ class ListingsAPI:
         if dry_run:
             return {"ad_id": ad_id, "dry_run": True}
 
-        # Step 2c: set delivery options
+        # Step 2c: refresh withModel to get the post-update etag.
+        # iOS app does this before delivery + productcontext.
+        _, fresh_etag = self._c.adinput_get(f"/adinput/ad/withModel/{ad_id}")
+
+        # Step 2d: set delivery options
         self.set_delivery(
             ad_id,
             meetup=meetup,
             shipping=shipping,
             buy_now=buy_now,
             seller_pays_shipping=seller_pays_shipping,
+        )
+
+        # Step 2e: fetch productcontext. iOS hits this before /order/choices;
+        # publishing without it may cause the listing to stay stuck in review.
+        # adRevision = numeric part of the W/"..." weak etag.
+        ad_revision = re.sub(r'\D', '', fresh_etag) or fresh_etag
+        self._c.adinput_get(
+            f"/adinput/product/recommerce/{ad_id}/productcontext?adRevision={ad_revision}"
         )
 
         # Step 3: publish as Basic (free)

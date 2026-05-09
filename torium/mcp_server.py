@@ -302,6 +302,10 @@ def create_listing(
     trade_type: str = "1",
     image_paths: str = "",
     image_ids: str = "",
+    meetup: bool = True,
+    shipping: bool = False,
+    buy_now: bool = False,
+    seller_pays_shipping: bool = False,
 ) -> str:
     """
     Create and publish a new free (Basic) listing on Tori.fi.
@@ -319,6 +323,10 @@ def create_listing(
     image_ids:   Comma-separated image IDs from get_upload_url(). Use in remote/HTTP
                  mode after uploading each file to its presigned upload_url.
                  e.g. "abc123,def456"
+    meetup:                Allow buyer pickup / meetup. Default True.
+    shipping:              Offer shipping. Default False.
+    buy_now:               Enable Tori "Osta heti" buy-now flow. Default False.
+    seller_pays_shipping:  Seller covers shipping cost. Default False.
     """
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
 
@@ -344,6 +352,10 @@ def create_listing(
         trade_type=trade_type,
         image_paths=paths,
         image_bytes=image_bytes_list,
+        meetup=meetup,
+        shipping=shipping,
+        buy_now=buy_now,
+        seller_pays_shipping=seller_pays_shipping,
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):

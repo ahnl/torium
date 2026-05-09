@@ -177,6 +177,30 @@ class ListingsAPI:
                 locations.append(loc)
         return locations
 
+    def set_delivery(
+        self,
+        ad_id: int,
+        *,
+        meetup: bool = True,
+        shipping: bool = False,
+        buy_now: bool = False,
+        seller_pays_shipping: bool = False,
+    ) -> None:
+        """
+        Set trade/delivery options on a listing.
+        """
+        self._c.post(
+            f"/ads/{ad_id}/delivery",
+            "TJT-API",
+            json_body={
+                "buyNow": buy_now,
+                "client": "IOS",
+                "meetup": meetup,
+                "sellerPaysShipping": seller_pays_shipping,
+                "shipping": shipping,
+            },
+        )
+
     def create(
         self,
         title: str,
@@ -188,6 +212,10 @@ class ListingsAPI:
         trade_type: str = "1",
         image_paths: Optional[List[str]] = None,
         image_bytes: Optional[List[bytes]] = None,
+        meetup: bool = True,
+        shipping: bool = False,
+        buy_now: bool = False,
+        seller_pays_shipping: bool = False,
         dry_run: bool = False,
     ) -> dict:
         """
@@ -272,6 +300,15 @@ class ListingsAPI:
 
         if dry_run:
             return {"ad_id": ad_id, "dry_run": True}
+
+        # Step 2c: set delivery options
+        self.set_delivery(
+            ad_id,
+            meetup=meetup,
+            shipping=shipping,
+            buy_now=buy_now,
+            seller_pays_shipping=seller_pays_shipping,
+        )
 
         # Step 3: publish as Basic (free)
         body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"

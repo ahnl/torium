@@ -341,3 +341,19 @@ class ListingsAPI:
         values, etag = self.get_for_edit(ad_id)
         values["price"] = [{"price_amount": str(price)}]
         return self.update(ad_id, values, etag)
+
+    def republish(self, ad_id: int) -> dict:
+        """
+        Republish an expired listing as Basic (free) without re-uploading
+        images or re-entering fields — re-runs the publish step of create()
+        for an existing ad_id.
+
+        Returns the publish response: {"order-id": ..., "is-completed": True, ...}
+        """
+        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
+        result, _, _ = self._c.adinput_post(
+            f"/adinput/order/choices/{ad_id}",
+            body=body,
+            content_type="application/x-www-form-urlencoded",
+        )
+        return result

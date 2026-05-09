@@ -103,12 +103,14 @@ The refresh token rotates and is saved on each use (valid ~1 year; bearer token 
 ### Listings
 
 ```bash
-torium listings                      # active listings (default)
+torium listings                      # active listings (default 50)
 torium listings --facet ALL          # ACTIVE | EXPIRED | DRAFT | DISPOSED | ALL
+torium listings --limit 200          # auto-paginate beyond default 50
 torium listings stats <id>           # clicks, messages, favorites
 torium listings dispose <id>         # mark as sold (merkitse myydyksi)
 torium listings delete <id>          # permanently delete (asks for confirmation)
 torium listings delete <id> --yes    # skip confirmation
+torium listings republish <id>       # republish an expired listing as Basic (free)
 torium listings edit <id> --price 7  # change price
 torium listings edit <id> --title "New title" --description "..."
 torium listings edit <id> --dry-run  # inspect current values without saving
@@ -178,6 +180,7 @@ See [MCP: Local install (stdio)](#mcp-local-install-stdio) above for setup. The 
 | `create_listing`      | Create and publish a new free listing                                        |
 | `dispose_listing`     | Mark a listing as sold                                                       |
 | `delete_listing`      | Permanently delete a listing                                                 |
+| `republish_listing`   | Republish an expired listing as Basic (free)                                 |
 | `edit_listing`        | Edit price, title, or description of a listing                               |
 | `get_unread_count`    | Total unread messages                                                        |
 | `list_conversations`  | Inbox with unread counts                                                     |

@@ -260,6 +260,25 @@ def delete_listing(ad_id: int) -> str:
 
 
 @mcp.tool()
+def republish_listing(ad_id: int) -> str:
+    """
+    Republish an expired listing (julkaise uudelleen) as a free Basic listing.
+    Reactivates an existing listing without re-uploading images or re-entering
+    fields — title, description, price and images are kept as-is.
+
+    Use this for listings that have expired (status EXPIRED). For paused listings,
+    edit them or contact Tori support; for sold/disposed listings, this will not
+    revive them.
+
+    ad_id: The listing ID to republish.
+    """
+    result = _get_client().listings.republish(ad_id)
+    if result.get("is-completed"):
+        return f"Listing {ad_id} republished. URL: https://www.tori.fi/{ad_id}"
+    return f"Republish requested for {ad_id} but completion status unclear: {result}"
+
+
+@mcp.tool()
 def get_upload_url(filename: str = "image.jpg") -> str:
     """
     Get a presigned upload URL for a single image file.

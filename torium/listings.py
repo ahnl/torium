@@ -219,7 +219,7 @@ class ListingsAPI:
         dry_run: bool = False,
     ) -> dict:
         """
-        Create and publish a new free (Basic) listing.
+        Create and submit a new free (Basic) listing.
 
         Args:
             title:       Listing title.
@@ -259,7 +259,7 @@ class ListingsAPI:
                 loc = self._c.adinput_upload_image(ad_id, data, "image/jpg")
                 if not loc:
                     raise RuntimeError(
-                        f"Image upload returned no location. Draft ad {ad_id} was NOT published."
+                        f"Image upload returned no location. Draft ad {ad_id} was NOT submitted."
                     )
                 entries.append((loc, w, h))
 

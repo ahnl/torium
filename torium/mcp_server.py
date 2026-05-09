@@ -308,7 +308,7 @@ def create_listing(
     seller_pays_shipping: bool = False,
 ) -> str:
     """
-    Create and publish a new free (Basic) listing on Tori.fi.
+    Create and submit a new free (Basic) listing on Tori.fi.
 
     title:       Listing title.
     description: Listing description.
@@ -359,8 +359,8 @@ def create_listing(
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):
-        return f"Listing published! ID: {ad_id}. URL: https://www.tori.fi/{ad_id}"
-    return f"Listing created (ID: {ad_id}) but publish status unclear: {result}"
+        return f"Listing submitted! ID: {ad_id}. URL: https://www.tori.fi/{ad_id}"
+    return f"Listing created (ID: {ad_id}) but submission status unclear: {result}"
 
 
 @mcp.tool()

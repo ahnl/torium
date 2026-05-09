@@ -11,7 +11,7 @@ Commands:
   torium listings dispose ID     Mark a listing as sold
   torium listings delete ID      Delete a listing (asks for confirmation)
   torium listings edit ID        Edit listing fields (--price, --title, --description)
-  torium listings create         Create and publish a new listing
+  torium listings create         Create and submit a new listing
 
   torium messages                List conversations with unread counts
   torium messages read ID        Show full message thread for a conversation
@@ -253,9 +253,9 @@ def listings_create(
     condition: str = typer.Option("2", "--condition", help="1=Uusi 2=Kuin uusi 3=Hyvä 4=Tyydyttävä"),
     trade_type: str = typer.Option("1", "--trade-type", help="1=Myydään 2=Ostetaan 3=Annetaan"),
     images: Optional[list[str]] = typer.Option(None, "--image", "-i", help="Image file path (repeat for multiple)"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Upload and poll images but stop before publishing"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Upload and poll images but stop before submitting"),
 ):
-    """Create and publish a new free listing."""
+    """Create and submit a new free listing."""
     client = get_client()
     status_msg = "Creating listing..." if not images else f"Creating listing with {len(images)} image(s)..."
     with console.status(status_msg):
@@ -272,15 +272,15 @@ def listings_create(
         )
     ad_id = result.get("ad_id")
     if result.get("dry_run"):
-        rprint(f"[yellow]Dry run complete. Draft {ad_id} left unpublished.[/yellow]")
+        rprint(f"[yellow]Dry run complete. Draft {ad_id} left unsubmitted.[/yellow]")
         rprint(f"  Delete it: [bold]torium listings delete {ad_id}[/bold]")
         return
     completed = result.get("is-completed", False)
     if completed:
-        rprint(f"[green]✓ Listing published![/green] ID: {ad_id}")
+        rprint(f"[green]✓ Listing submitted![/green] ID: {ad_id}")
         rprint(f"  [link=https://www.tori.fi/{ad_id}]https://www.tori.fi/{ad_id}[/link]")
     else:
-        rprint(f"[yellow]Listing created (ID: {ad_id}) but publish status unclear.[/yellow]")
+        rprint(f"[yellow]Listing created (ID: {ad_id}) but submission status unclear.[/yellow]")
         rprint(json.dumps(result, ensure_ascii=False))
 
 

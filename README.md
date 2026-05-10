@@ -23,9 +23,9 @@ This places `torium-mcp` (and `torium`) on your PATH globally. No venv path need
 torium auth setup
 ```
 
-Opens a browser for OAuth login. On macOS the redirect is captured automatically. 
+Opens a browser for OAuth login. On macOS and Linux the redirect is captured automatically (Linux registers a temporary `.desktop` URL handler via `xdg-mime`).
 
-On Windows/Linux, after login the browser will show an infinite loading spinner or a "can't open" error. Open the browser's developer tools (F12) → Console, find the failed redirect URL starting with `fi.tori.www...`, right-click it to copy the link address, and paste it into the terminal. **Do this quickly. The code in the URL expires in 30-60 seconds.**
+On Windows, after login the browser will show an infinite loading spinner or a "can't open" error. Open the browser's developer tools (F12) → Console, find the failed redirect URL starting with `fi.tori.www...`, right-click it to copy the link address, and paste it into the terminal. **Do this quickly. The code in the URL expires in 30-60 seconds.**
 
 <img src="docs/windows-oauth-instruction.png" width="800" alt="Windows OAuth instruction showing developer console and terminal" />
 

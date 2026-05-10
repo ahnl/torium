@@ -4,7 +4,10 @@ One-time Tori.fi authentication setup.
 On macOS: registers a temporary URL scheme handler via AppleScript, opens the
 browser for login, and captures the redirect automatically.
 
-On Windows/Linux (or with manual=True): opens the browser for login. After
+On Linux: registers a temporary .desktop URL scheme handler via xdg-mime,
+opens the browser for login, and captures the redirect automatically.
+
+On Windows (or with manual=True): opens the browser for login. After
 logging in, the browser will show a "can't open" error. Copy the full URL
 from the address bar and paste it into the terminal.
 """
@@ -21,6 +24,13 @@ CALLBACK_FILE = "/tmp/tori_auth_callback.txt"
 APP_PATH = os.path.expanduser("~/Applications/ToriAuthHelper.app")
 LSREG = ("/System/Library/Frameworks/CoreServices.framework"
          "/Frameworks/LaunchServices.framework/Support/lsregister")
+
+LINUX_SCHEME = f"fi.tori.www.{CLIENT_ID}"
+LINUX_DESKTOP_NAME = "torium-auth-handler.desktop"
+LINUX_DESKTOP_DIR = os.path.expanduser("~/.local/share/applications")
+LINUX_DESKTOP_PATH = os.path.join(LINUX_DESKTOP_DIR, LINUX_DESKTOP_NAME)
+LINUX_HELPER_DIR = os.path.expanduser("~/.local/share/torium")
+LINUX_HELPER_PATH = os.path.join(LINUX_HELPER_DIR, "url-handler.sh")
 
 
 def _register_url_handler():
@@ -54,6 +64,49 @@ end open location
     time.sleep(2)
 
 
+def _register_url_handler_linux() -> None:
+    """Register a tiny .desktop URL handler that writes the callback URL to a file."""
+    os.makedirs(LINUX_HELPER_DIR, exist_ok=True)
+    os.makedirs(LINUX_DESKTOP_DIR, exist_ok=True)
+
+    with open(LINUX_HELPER_PATH, "w") as f:
+        f.write(f"#!/bin/sh\nprintf '%s' \"$1\" > {CALLBACK_FILE}\n")
+    os.chmod(LINUX_HELPER_PATH, 0o755)
+
+    desktop = (
+        "[Desktop Entry]\n"
+        "Name=Torium Auth Handler\n"
+        "Comment=Capture OAuth redirect for torium\n"
+        f"Exec={LINUX_HELPER_PATH} %u\n"
+        "Type=Application\n"
+        "NoDisplay=true\n"
+        f"MimeType=x-scheme-handler/{LINUX_SCHEME};\n"
+    )
+    with open(LINUX_DESKTOP_PATH, "w") as f:
+        f.write(desktop)
+
+    subprocess.run(
+        ["update-desktop-database", LINUX_DESKTOP_DIR],
+        check=False, capture_output=True,
+    )
+    subprocess.run(
+        ["xdg-mime", "default", LINUX_DESKTOP_NAME, f"x-scheme-handler/{LINUX_SCHEME}"],
+        check=True, capture_output=True,
+    )
+
+
+def _cleanup_url_handler_linux() -> None:
+    for path in (LINUX_DESKTOP_PATH, LINUX_HELPER_PATH):
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+    subprocess.run(
+        ["update-desktop-database", LINUX_DESKTOP_DIR],
+        check=False, capture_output=True,
+    )
+
+
 def main(manual: bool = False) -> None:
 
     verifier = secrets.token_urlsafe(64)
@@ -70,12 +123,19 @@ def main(manual: bool = False) -> None:
     })
 
     handler_registered = False
-    if sys.platform == "darwin" and not manual:
+    handler_kind: str = ""
+    if not manual:
         try:
             if os.path.exists(CALLBACK_FILE):
                 os.remove(CALLBACK_FILE)
-            _register_url_handler()
-            handler_registered = True
+            if sys.platform == "darwin":
+                _register_url_handler()
+                handler_registered = True
+                handler_kind = "darwin"
+            elif sys.platform.startswith("linux"):
+                _register_url_handler_linux()
+                handler_registered = True
+                handler_kind = "linux"
         except Exception as e:
             print(f"Warning: could not register URL handler: {e}")
 
@@ -84,16 +144,20 @@ def main(manual: bool = False) -> None:
 
     if handler_registered:
         print("Log in to Tori.fi in the browser. Waiting for redirect...")
-        for _ in range(120):
-            time.sleep(1)
-            if os.path.exists(CALLBACK_FILE):
-                break
-        else:
-            print("Timed out waiting for login.")
-            sys.exit(1)
-        with open(CALLBACK_FILE) as f:
-            callback_url = f.read().strip()
-        os.remove(CALLBACK_FILE)
+        try:
+            for _ in range(120):
+                time.sleep(1)
+                if os.path.exists(CALLBACK_FILE):
+                    break
+            else:
+                print("Timed out waiting for login.")
+                sys.exit(1)
+            with open(CALLBACK_FILE) as f:
+                callback_url = f.read().strip()
+            os.remove(CALLBACK_FILE)
+        finally:
+            if handler_kind == "linux":
+                _cleanup_url_handler_linux()
     else:
         print("Log in to Tori.fi in the browser.")
         print("After login, the browser will show a 'can't open this page' error.")

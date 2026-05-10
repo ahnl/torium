@@ -66,6 +66,9 @@ end open location
 
 def _register_url_handler_linux() -> None:
     """Register a tiny .desktop URL handler that writes the callback URL to a file."""
+    if not shutil.which("xdg-mime"):
+        raise RuntimeError("xdg-mime not found (headless system?)")
+
     os.makedirs(LINUX_HELPER_DIR, exist_ok=True)
     os.makedirs(LINUX_DESKTOP_DIR, exist_ok=True)
 
@@ -85,14 +88,19 @@ def _register_url_handler_linux() -> None:
     with open(LINUX_DESKTOP_PATH, "w") as f:
         f.write(desktop)
 
-    subprocess.run(
-        ["update-desktop-database", LINUX_DESKTOP_DIR],
-        check=False, capture_output=True,
-    )
-    subprocess.run(
-        ["xdg-mime", "default", LINUX_DESKTOP_NAME, f"x-scheme-handler/{LINUX_SCHEME}"],
-        check=True, capture_output=True,
-    )
+    try:
+        if shutil.which("update-desktop-database"):
+            subprocess.run(
+                ["update-desktop-database", LINUX_DESKTOP_DIR],
+                check=False, capture_output=True,
+            )
+        subprocess.run(
+            ["xdg-mime", "default", LINUX_DESKTOP_NAME, f"x-scheme-handler/{LINUX_SCHEME}"],
+            check=True, capture_output=True,
+        )
+    except Exception:
+        _cleanup_url_handler_linux()
+        raise
 
 
 def _cleanup_url_handler_linux() -> None:
@@ -101,10 +109,11 @@ def _cleanup_url_handler_linux() -> None:
             os.remove(path)
         except FileNotFoundError:
             pass
-    subprocess.run(
-        ["update-desktop-database", LINUX_DESKTOP_DIR],
-        check=False, capture_output=True,
-    )
+    if shutil.which("update-desktop-database"):
+        subprocess.run(
+            ["update-desktop-database", LINUX_DESKTOP_DIR],
+            check=False, capture_output=True,
+        )
 
 
 def main(manual: bool = False) -> None:

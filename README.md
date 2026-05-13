@@ -13,8 +13,7 @@
   <a href="#installation">Installation</a> &bull;
   <a href="#cli-reference">CLI</a> &bull;
   <a href="#mcp-tools">MCP Tools</a> &bull;
-  <a href="#library-usage">Library</a> &bull;
-  <a href="#self-hosted-remote-mcp-server">Self-Hosted</a>
+  <a href="#library-usage">Library</a>
 </p>
 
 <p align="center">

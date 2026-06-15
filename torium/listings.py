@@ -186,26 +186,21 @@ class ListingsAPI:
         shipping: bool = False,
         buy_now: bool = False,
         seller_pays_shipping: bool = False,
-        package_size: str = "SMALL",
     ) -> None:
         """
         Set trade/delivery options on a listing.
-
-        package_size: ToriDiili package size, only sent when shipping=True.
-            "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm)
-            "MEDIUM" → Iso paketti   (max 10 kg, 60×37×37 cm)
-            "LARGE"  → Jättipaketti  (max 20 kg, 100×60×50 cm)
         """
-        body: dict = {
-            "buyNow": buy_now,
-            "client": "IOS",
-            "meetup": meetup,
-            "sellerPaysShipping": seller_pays_shipping,
-            "shipping": shipping,
-        }
-        if shipping:
-            body["packageSize"] = package_size
-        self._c.post(f"/ads/{ad_id}/delivery", "TJT-API", json_body=body)
+        self._c.post(
+            f"/ads/{ad_id}/delivery",
+            "TJT-API",
+            json_body={
+                "buyNow": buy_now,
+                "client": "IOS",
+                "meetup": meetup,
+                "sellerPaysShipping": seller_pays_shipping,
+                "shipping": shipping,
+            },
+        )
 
     def create(
         self,
@@ -222,7 +217,6 @@ class ListingsAPI:
         shipping: bool = False,
         buy_now: bool = False,
         seller_pays_shipping: bool = False,
-        package_size: str = "SMALL",
         dry_run: bool = False,
     ) -> dict:
         """
@@ -236,10 +230,6 @@ class ListingsAPI:
             postal_code: Finnish postal code, e.g. "96100".
             condition:   Condition ID: "1"=Uusi, "2"=Kuin uusi, "3"=Hyvä, "4"=Tyydyttävä.
             trade_type:  "1"=Myydään, "2"=Ostetaan, "3"=Annetaan.
-            package_size: ToriDiili package size when shipping=True.
-                "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm)
-                "MEDIUM" → Iso paketti   (max 10 kg, 60×37×37 cm)
-                "LARGE"  → Jättipaketti  (max 20 kg, 100×60×50 cm)
 
         Returns the dict from the publish response: {"order-id": ..., "is-completed": True}.
         """
@@ -323,7 +313,6 @@ class ListingsAPI:
             shipping=shipping,
             buy_now=buy_now,
             seller_pays_shipping=seller_pays_shipping,
-            package_size=package_size,
         )
 
         # Step 2e: fetch productcontext. iOS hits this before /order/choices;

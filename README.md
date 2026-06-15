@@ -205,7 +205,7 @@ See [Local install (MCP and CLI)](#local-install-mcp-and-cli) above for setup. T
 | `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
 | `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
 | `get_create_categories` | Find category IDs by Finnish keyword (for create_listing)                  |
-| `create_listing`      | Create and submit a new free listing, with optional ToriDiili shipping        |
+| `create_listing`      | Create and publish a new free listing                                        |
 | `dispose_listing`     | Mark a listing as sold                                                       |
 | `delete_listing`      | Permanently delete a listing                                                 |
 | `republish_listing`   | Republish an expired listing as Basic (free)                                 |
@@ -224,21 +224,6 @@ See [Local install (MCP and CLI)](#local-install-mcp-and-cli) above for setup. T
 | `fetch_image`         | Fetch a listing photo by URL and return it as an image for vision inspection |
 | `fetch_image_base64`  | Fetch a listing photo and return it as a base64 data URI for HTML embedding  |
 
-
-### ToriDiili shipping
-
-`create_listing` (and the `create` / `set_delivery` library methods) can enable ToriDiili
-shipping with `shipping=True`. When shipping is enabled, `package_size` selects the parcel
-tier (only sent to the API when `shipping=True`):
-
-| `package_size` | Finnish label | Max weight | Max dimensions   |
-| -------------- | ------------- | ---------- | ---------------- |
-| `"SMALL"`      | Peruspaketti  | 4 kg       | 40 × 32 × 15 cm  |
-| `"MEDIUM"`     | Iso paketti   | 10 kg      | 60 × 37 × 37 cm  |
-| `"LARGE"`      | Jättipaketti  | 20 kg      | 100 × 60 × 50 cm |
-
-Default is `"SMALL"` (Peruspaketti). Other delivery options: `meetup` (buyer pickup, default
-on), `buy_now` ("Osta heti"), and `seller_pays_shipping`.
 
 ### Image inspection and display
 
@@ -269,10 +254,6 @@ client.listings.dispose(12345)
 client.listings.delete(12345)
 stats = client.listings.stats(12345)
 client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100")
-client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100",
-                       shipping=True, package_size="MEDIUM")  # offer ToriDiili shipping
-client.listings.set_delivery(12345, shipping=True, package_size="LARGE")  # change delivery options
-client.listings.republish(12345)             # republish an expired listing
 client.listings.set_price(12345, 7)          # change price directly
 values, etag = client.listings.get_for_edit(12345)  # fetch for editing
 values["title"] = "New title"

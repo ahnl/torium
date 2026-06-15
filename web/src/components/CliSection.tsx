@@ -30,6 +30,11 @@ listings = client.listings.search(facet="ACTIVE")
 client.listings.dispose(12345)   # merkitse myydyksi
 stats   = client.listings.stats(12345)
 
+# Luo ilmoitus ToriDiili-toimituksella
+client.listings.create("Kenkä", "Hyväkuntoinen", price=10,
+                       category="193", postal_code="00100",
+                       shipping=True, package_size="MEDIUM")
+
 # Haku
 results = client.search.search("iphone", price_from=100, price_to=500)
 

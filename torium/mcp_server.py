@@ -325,6 +325,8 @@ def create_listing(
     shipping: bool = False,
     buy_now: bool = False,
     seller_pays_shipping: bool = False,
+    package_size: str = "SMALL",
+    city: str = "",
 ) -> str:
     """
     Create and submit a new free (Basic) listing on Tori.fi.
@@ -343,9 +345,14 @@ def create_listing(
                  mode after uploading each file to its presigned upload_url.
                  e.g. "abc123,def456"
     meetup:                Allow buyer pickup / meetup. Default True.
-    shipping:              Offer shipping. Default False.
+    shipping:              Offer ToriDiili shipping. Default False.
     buy_now:               Enable Tori "Osta heti" buy-now flow. Default False.
     seller_pays_shipping:  Seller covers shipping cost. Default False.
+    package_size:          ToriDiili package size when shipping=True.
+                           "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm) [default]
+                           "MEDIUM" → Iso paketti   (max 10 kg, 40×32×26 cm)
+                           "LARGE"  → Jättipaketti  (max 24 kg, 100×60×60 cm)
+    city:                  Seller city, e.g. "Helsinki". Required when shipping=True.
     """
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
 
@@ -375,6 +382,8 @@ def create_listing(
         shipping=shipping,
         buy_now=buy_now,
         seller_pays_shipping=seller_pays_shipping,
+        package_size=package_size,
+        city=(city or None),
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):
@@ -922,7 +931,7 @@ _LOGIN_PAGE = """\
         placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&state=..."
         required></textarea>
       <button class="btn" type="submit"
-        onclick="window.plausible&&window.plausible('OAuth Completed');this.disabled=true;this.textContent='Yhdistetään\u2026';this.form.submit()">
+        onclick="window.plausible&&window.plausible('OAuth Completed');this.disabled=true;this.textContent='Yhdistetään…';this.form.submit()">
         Yhdistä
       </button>
     </form>

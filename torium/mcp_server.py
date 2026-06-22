@@ -157,14 +157,19 @@ mcp = FastMCP("torium", instructions=(
 # ── Listings ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_my_listings(facet: str = "ACTIVE") -> str:
+def list_my_listings(facet: str = "ACTIVE", limit: int = 0) -> str:
     """
     List the user's own Tori.fi listings.
 
     facet: ACTIVE (default) | EXPIRED | DRAFT | DISPOSED | ALL
+    limit: Max listings to return. 0 (default) = ALL — every page is fetched
+           automatically (the Tori API returns at most 50 per request, so power
+           users with hundreds of listings need this pagination).
     Returns listing summaries with IDs, titles, states, click counts.
     """
-    data = _get_client().listings.search(facet=facet if facet != "ACTIVE" or facet else None)
+    data = _get_client().listings.search_all(
+        facet=(facet or None), max_results=(limit or None)
+    )
     summaries = data.get("summaries", [])
     result = []
     for s in summaries:
@@ -179,7 +184,10 @@ def list_my_listings(facet: str = "ACTIVE") -> str:
             "created": s.get("created", ""),
             "expires": s.get("expires", ""),
         })
-    return json.dumps({"total": data.get("total", len(result)), "listings": result}, ensure_ascii=False)
+    return json.dumps(
+        {"total": data.get("total", len(result)), "returned": len(result), "listings": result},
+        ensure_ascii=False,
+    )
 
 
 @mcp.tool()
@@ -532,18 +540,21 @@ def list_favorites() -> str:
 @mcp.tool()
 def search_my_listings(
     facet: str = "",
-    limit: int = 50,
+    limit: int = 0,
     offset: int = 0,
 ) -> str:
     """
     Search and filter the user's own listings.
 
-    facet: Optional filter — ACTIVE | EXPIRED | DRAFT | DISPOSED | PENDING | ALL
+    facet:  Optional filter — ACTIVE | EXPIRED | DRAFT | DISPOSED | PENDING | ALL
+    limit:  Max results. 0 (default) = ALL. Values >50 auto-paginate (the Tori
+            API caps each response at 50 items per request).
+    offset: Starting offset for manual paging. Default 0.
     Returns full listing summaries including available actions.
     """
-    data = _get_client().listings.search(
+    data = _get_client().listings.search_all(
         facet=facet or None,
-        limit=limit,
+        max_results=(limit or None),
         offset=offset,
     )
     return json.dumps(data, ensure_ascii=False)

@@ -200,8 +200,8 @@ See [Local install (MCP and CLI)](#local-install-mcp-and-cli) above for setup. T
 
 | Tool                  | Description                                                                  |
 | --------------------- | ---------------------------------------------------------------------------- |
-| `list_my_listings`    | Own listings, optional `facet` filter                                        |
-| `search_my_listings`  | Own listings with full detail                                                |
+| `list_my_listings`    | Own listings, optional `facet` filter; returns all (auto-paginated)          |
+| `search_my_listings`  | Own listings with full detail; returns all (auto-paginated)                  |
 | `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
 | `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
 | `get_create_categories` | Find category IDs by Finnish keyword (for create_listing)                  |

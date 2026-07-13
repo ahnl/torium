@@ -242,10 +242,9 @@ def listings_edit(
     """Edit a listing (price, title, description)."""
     client = get_client()
 
-    with console.status(f"Fetching listing {ad_id}..."):
-        values, etag = client.listings.get_for_edit(ad_id)
-
     if dry_run:
+        with console.status(f"Fetching listing {ad_id}..."):
+            values, etag = client.listings.get_for_edit(ad_id)
         rprint(f"[bold]Current values for {ad_id}[/bold] (ETag: {etag})")
         rprint(f"  title:       {values.get('title', '-')}")
         cur_price = values.get("price", [{}])
@@ -257,26 +256,20 @@ def listings_edit(
         rprint("[red]Specify at least one of --price, --title, --description (or --dry-run to inspect).[/red]")
         raise typer.Exit(1)
 
-    if price is not None:
-        values["price"] = [{"price_amount": str(price)}]
-    if title is not None:
-        values["title"] = title
-    if description is not None:
-        values["description"] = description
+    with console.status(f"Updating listing {ad_id} (submit + publish + verify, may take minutes)..."):
+        try:
+            client.listings.edit(ad_id, price=price, title=title, description=description)
+        except RuntimeError as e:
+            rprint(f"[red]FAILED: {e}[/red]")
+            raise typer.Exit(1)
 
-    with console.status(f"Updating listing {ad_id}..."):
-        result = client.listings.update(ad_id, values, etag)
-
-    new_etag = result.get("etag", "")
-    rprint(f"[green]✓ Listing {ad_id} updated.[/green]")
+    rprint(f"[green]OK — listing {ad_id} updated, published and verified live.[/green]")
     if price is not None:
         rprint(f"  price → {price} €")
     if title is not None:
         rprint(f"  title → {title}")
     if description is not None:
         rprint(f"  description updated")
-    if new_etag:
-        rprint(f"  new ETag: {new_etag}")
 
 
 @listings_app.command("create")

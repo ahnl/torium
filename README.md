@@ -275,10 +275,12 @@ client.listings.create("Title", "Desc", price=10, category="193", postal_code="9
 client.listings.set_delivery(12345, shipping=True, package_size="LARGE",
                              city="Helsinki", postal_code="00100")  # change delivery options
 client.listings.republish(12345)             # republish an expired listing
-client.listings.set_price(12345, 7)          # change price directly
-values, etag = client.listings.get_for_edit(12345)  # fetch for editing
-values["title"] = "New title"
-client.listings.update(12345, values, etag)  # submit full update
+client.listings.set_price(12345, 7)          # change price (publishes + verifies)
+client.listings.edit(12345, title="New title", description="...")
+# edit() runs the full flow: update draft revision → publish → read-back
+# verification. Raises RuntimeError if the change did not go live.
+# NOTE: get_for_edit()/update() alone only store a draft revision — the live
+# ad does NOT change without the publish step. Use edit() instead.
 
 # Messaging
 convs = client.messaging.list_conversations()

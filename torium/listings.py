@@ -113,6 +113,61 @@ class ListingsAPI:
         qs = urllib.parse.urlencode(params)
         return self._c.get(f"/search?{qs}", "AD-SUMMARIES")
 
+    def search_all(
+        self,
+        facet: Optional[str] = None,
+        max_results: Optional[int] = None,
+        offset: int = 0,
+    ) -> dict:
+        """
+        Return ALL of the user's listings for a facet, paginating transparently.
+
+        The /search endpoint hard-caps every response at 50 items regardless of
+        the ``limit`` parameter, so this loops with ``offset`` until all pages
+        are collected (or ``max_results`` is reached). Power users with hundreds
+        of listings would otherwise be truncated to the first 50.
+
+        facet:       ALL | DRAFT | ACTIVE | EXPIRED | PENDING | DISPOSED
+                     None → server default (all active).
+        max_results: Stop after this many listings. None → fetch everything.
+        offset:      Starting offset (for resuming/skipping). Default 0.
+
+        Returns the first page's response dict with its ``summaries`` replaced by
+        the full accumulated list; ``total`` stays the server-reported count.
+        """
+        PAGE_CAP = 50  # server returns at most 50 per request
+        all_summaries: list = []
+        first: Optional[dict] = None
+        pages = 0
+        while True:
+            page_size = PAGE_CAP
+            if max_results is not None:
+                remaining = max_results - len(all_summaries)
+                if remaining <= 0:
+                    break
+                page_size = min(PAGE_CAP, remaining)
+            page = self.search(facet=facet, limit=page_size, offset=offset)
+            if first is None:
+                first = page
+            batch = page.get("summaries", [])
+            if not batch:
+                break
+            all_summaries.extend(batch)
+            offset += len(batch)
+            if len(batch) < page_size:
+                break  # short page → last page reached
+            total = page.get("total")
+            if isinstance(total, int) and offset >= total:
+                break  # collected everything the server reports
+            pages += 1
+            if pages > 1000:
+                break  # hard safety bound against a misbehaving server
+        if first is None:
+            return {"summaries": [], "total": 0}
+        result = dict(first)
+        result["summaries"] = all_summaries
+        return result
+
     def get(self, ad_id: int) -> dict:
         """
         Full listing detail (adview).
@@ -302,21 +357,57 @@ class ListingsAPI:
         shipping: bool = False,
         buy_now: bool = False,
         seller_pays_shipping: bool = False,
+        package_size: str = "SMALL",
+        city: Optional[str] = None,
+        postal_code: Optional[str] = None,
+        shipping_info: Optional[dict] = None,
     ) -> None:
         """
         Set trade/delivery options on a listing.
+
+        When shipping=True the Tori delivery API requires a nested
+        ``shippingInfo`` object — a flat ``packageSize`` field is ignored and
+        the request fails with HTTP 400
+        ("ShippingInfo is required when shipping=true, but shippingInfo=null").
+        ``shippingInfo.city`` and ``shippingInfo.postalCode`` are validated as
+        required (NotEmpty); the seller's name/phone/address are filled in
+        server-side from the account profile, so a minimal
+        ``{size, city, postalCode}`` is enough.
+
+        package_size: ToriDiili package size, only sent when shipping=True.
+            "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm)
+            "MEDIUM" → Iso paketti   (max 10 kg, 40×32×26 cm)
+            "LARGE"  → Jättipaketti  (max 24 kg, 100×60×60 cm)
+        city:         Seller city — required when shipping=True.
+        postal_code:  Seller postal code — required when shipping=True.
+        shipping_info: Optional extra shippingInfo fields to merge in
+            (e.g. name, phoneNumber, address, products).
+
+        Raises:
+            ValueError: if shipping=True but city/postal_code are missing.
         """
-        self._c.post(
-            f"/ads/{ad_id}/delivery",
-            "TJT-API",
-            json_body={
-                "buyNow": buy_now,
-                "client": "IOS",
-                "meetup": meetup,
-                "sellerPaysShipping": seller_pays_shipping,
-                "shipping": shipping,
-            },
-        )
+        body: dict = {
+            "buyNow": buy_now,
+            "client": "IOS",
+            "meetup": meetup,
+            "sellerPaysShipping": seller_pays_shipping,
+            "shipping": shipping,
+        }
+        if shipping:
+            info: dict = {"size": package_size}
+            if city is not None:
+                info["city"] = city
+            if postal_code is not None:
+                info["postalCode"] = postal_code
+            if shipping_info:
+                info.update(shipping_info)
+            if not info.get("city") or not info.get("postalCode"):
+                raise ValueError(
+                    "set_delivery(shipping=True) requires city and postal_code: "
+                    "the Tori API rejects shippingInfo without them (HTTP 400)."
+                )
+            body["shippingInfo"] = info
+        self._c.post(f"/ads/{ad_id}/delivery", "TJT-API", json_body=body)
 
     def create(
         self,
@@ -333,6 +424,8 @@ class ListingsAPI:
         shipping: bool = False,
         buy_now: bool = False,
         seller_pays_shipping: bool = False,
+        package_size: str = "SMALL",
+        city: Optional[str] = None,
         dry_run: bool = False,
     ) -> dict:
         """
@@ -346,6 +439,11 @@ class ListingsAPI:
             postal_code: Finnish postal code, e.g. "96100".
             condition:   Condition ID: "1"=Uusi, "2"=Kuin uusi, "3"=Hyvä, "4"=Tyydyttävä.
             trade_type:  "1"=Myydään, "2"=Ostetaan, "3"=Annetaan.
+            package_size: ToriDiili package size when shipping=True.
+                "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm)
+                "MEDIUM" → Iso paketti   (max 10 kg, 40×32×26 cm)
+                "LARGE"  → Jättipaketti  (max 24 kg, 100×60×60 cm)
+            city:        Seller city — required when shipping=True.
 
         Returns the dict from the publish response: {"order-id": ..., "is-completed": True}.
         """
@@ -429,6 +527,9 @@ class ListingsAPI:
             shipping=shipping,
             buy_now=buy_now,
             seller_pays_shipping=seller_pays_shipping,
+            package_size=package_size,
+            city=city,
+            postal_code=postal_code,
         )
 
         # Step 2e: fetch productcontext. iOS hits this before /order/choices;

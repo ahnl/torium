@@ -157,14 +157,19 @@ mcp = FastMCP("torium", instructions=(
 # ── Listings ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_my_listings(facet: str = "ACTIVE") -> str:
+def list_my_listings(facet: str = "ACTIVE", limit: int = 0) -> str:
     """
     List the user's own Tori.fi listings.
 
     facet: ACTIVE (default) | EXPIRED | DRAFT | DISPOSED | ALL
+    limit: Max listings to return. 0 (default) = ALL — every page is fetched
+           automatically (the Tori API returns at most 50 per request, so power
+           users with hundreds of listings need this pagination).
     Returns listing summaries with IDs, titles, states, click counts.
     """
-    data = _get_client().listings.search(facet=facet if facet != "ACTIVE" or facet else None)
+    data = _get_client().listings.search_all(
+        facet=(facet or None), max_results=(limit or None)
+    )
     summaries = data.get("summaries", [])
     result = []
     for s in summaries:
@@ -179,7 +184,10 @@ def list_my_listings(facet: str = "ACTIVE") -> str:
             "created": s.get("created", ""),
             "expires": s.get("expires", ""),
         })
-    return json.dumps({"total": data.get("total", len(result)), "listings": result}, ensure_ascii=False)
+    return json.dumps(
+        {"total": data.get("total", len(result)), "returned": len(result), "listings": result},
+        ensure_ascii=False,
+    )
 
 
 @mcp.tool()
@@ -325,6 +333,8 @@ def create_listing(
     shipping: bool = False,
     buy_now: bool = False,
     seller_pays_shipping: bool = False,
+    package_size: str = "SMALL",
+    city: str = "",
 ) -> str:
     """
     Create and submit a new free (Basic) listing on Tori.fi.
@@ -343,9 +353,14 @@ def create_listing(
                  mode after uploading each file to its presigned upload_url.
                  e.g. "abc123,def456"
     meetup:                Allow buyer pickup / meetup. Default True.
-    shipping:              Offer shipping. Default False.
+    shipping:              Offer ToriDiili shipping. Default False.
     buy_now:               Enable Tori "Osta heti" buy-now flow. Default False.
     seller_pays_shipping:  Seller covers shipping cost. Default False.
+    package_size:          ToriDiili package size when shipping=True.
+                           "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm) [default]
+                           "MEDIUM" → Iso paketti   (max 10 kg, 40×32×26 cm)
+                           "LARGE"  → Jättipaketti  (max 24 kg, 100×60×60 cm)
+    city:                  Seller city, e.g. "Helsinki". Required when shipping=True.
     """
     paths = [p.strip() for p in image_paths.split(",") if p.strip()] if image_paths else []
 
@@ -375,6 +390,8 @@ def create_listing(
         shipping=shipping,
         buy_now=buy_now,
         seller_pays_shipping=seller_pays_shipping,
+        package_size=package_size,
+        city=(city or None),
     )
     ad_id = result.get("ad_id")
     if result.get("is-completed"):
@@ -526,18 +543,21 @@ def list_favorites() -> str:
 @mcp.tool()
 def search_my_listings(
     facet: str = "",
-    limit: int = 50,
+    limit: int = 0,
     offset: int = 0,
 ) -> str:
     """
     Search and filter the user's own listings.
 
-    facet: Optional filter — ACTIVE | EXPIRED | DRAFT | DISPOSED | PENDING | ALL
+    facet:  Optional filter — ACTIVE | EXPIRED | DRAFT | DISPOSED | PENDING | ALL
+    limit:  Max results. 0 (default) = ALL. Values >50 auto-paginate (the Tori
+            API caps each response at 50 items per request).
+    offset: Starting offset for manual paging. Default 0.
     Returns full listing summaries including available actions.
     """
-    data = _get_client().listings.search(
+    data = _get_client().listings.search_all(
         facet=facet or None,
-        limit=limit,
+        max_results=(limit or None),
         offset=offset,
     )
     return json.dumps(data, ensure_ascii=False)
@@ -925,7 +945,7 @@ _LOGIN_PAGE = """\
         placeholder="fi.tori.www.6079834b9b0b741812e7e91f://login?code=...&state=..."
         required></textarea>
       <button class="btn" type="submit"
-        onclick="window.plausible&&window.plausible('OAuth Completed');this.disabled=true;this.textContent='Yhdistetään\u2026';this.form.submit()">
+        onclick="window.plausible&&window.plausible('OAuth Completed');this.disabled=true;this.textContent='Yhdistetään…';this.form.submit()">
         Yhdistä
       </button>
     </form>

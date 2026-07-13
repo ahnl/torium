@@ -391,8 +391,9 @@ def edit_listing(
 ) -> str:
     """
     Edit a listing's price, title, or description. Fetches current values from
-    the adinput service, applies the requested changes, and submits the update.
-    At least one of price/title/description must be provided.
+    the adinput service, applies the requested changes, submits the update,
+    publishes it live, and verifies via read-back that the change actually
+    took effect. At least one of price/title/description must be provided.
 
     ad_id:       The listing ID to update.
     price:       New price in euros. 0 = keep current price.
@@ -403,23 +404,25 @@ def edit_listing(
         return "Error: specify at least one of price, title, or description."
 
     c = _get_client()
-    values, etag = c.listings.get_for_edit(ad_id)
+    try:
+        result = c.listings.edit(
+            ad_id,
+            price=price or None,
+            title=title or None,
+            description=description or None,
+        )
+    except (RuntimeError, ValueError) as e:
+        return f"Error: {e}"
 
     changed = []
     if price:
-        values["price"] = [{"price_amount": str(price)}]
         changed.append(f"price → {price} €")
     if title:
-        values["title"] = title
         changed.append(f"title → {title!r}")
     if description:
-        values["description"] = description
         changed.append("description updated")
-
-    result = c.listings.update(ad_id, values, etag)
-    new_etag = result.get("etag", "")
     summary = ", ".join(changed)
-    return f"Listing {ad_id} updated: {summary}. New ETag: {new_etag}"
+    return f"Listing {ad_id} updated, published and verified live: {summary}."
 
 
 # ── Messaging ─────────────────────────────────────────────────────────────────

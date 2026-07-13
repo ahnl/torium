@@ -30,6 +30,40 @@ if TYPE_CHECKING:
 
 _IMG_BASE = "https://img.tori.net/dynamic/default/"
 
+# Publish as Basic (free): urn:product:package-specification:10
+_PUBLISH_BASIC_BODY = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
+
+# Read-back retry schedule (seconds before each attempt). Adview propagation
+# after the order/choices commit takes minutes, not seconds — verified live
+# 2026-07-13: a committed price change appeared in adview only after ~2-10 min.
+_READBACK_DELAYS = (0, 10, 15, 30, 30, 60, 60, 60, 60)
+
+
+def _norm_field(v):
+    """Normalize a field value for read-back comparison (whitespace runs in strings)."""
+    if isinstance(v, str):
+        return " ".join(v.split())
+    return v
+
+
+def _raise_on_violations(resp: dict) -> None:
+    """
+    The adinput update PUT can return 200 with validation violations in
+    meta-data (e.g. {"violation-count": 3, "title": {"violations": [...]}}).
+    A revision with violations never goes live, so treat it as an error.
+    """
+    meta = resp.get("meta-data") or resp.get("ad", {}).get("meta-data") or {}
+    count = meta.get("violation-count", 0)
+    if count:
+        details = {
+            field: info["violations"]
+            for field, info in meta.items()
+            if isinstance(info, dict) and info.get("violations")
+        }
+        raise RuntimeError(
+            f"Update rejected by validation ({count} violations): {details}"
+        )
+
 
 def _image_dimensions(data: bytes) -> tuple[int, int]:
     """Return (width, height) by parsing JPEG or PNG file headers."""
@@ -156,11 +190,93 @@ class ListingsAPI:
         Submit a full ad update. values must be the complete field map (from
         get_for_edit), with any desired changes applied.
 
+        NOTE: this only stores a new adinput draft revision — the live ad does
+        NOT change until the publish step runs (see edit()). Raises RuntimeError
+        if the server reports validation violations in the response body.
+
         Returns the response which includes the new ETag and action URLs.
         """
-        return self._c.adinput_put(
+        result = self._c.adinput_put(
             f"/adinput/ad/recommerce/{ad_id}/update", values, etag
         )
+        _raise_on_violations(result)
+        return result
+
+    def _publish_basic(self, ad_id: int) -> dict:
+        """
+        Commit the current adinput revision live as Basic (free).
+
+        Same completion sequence create() uses: fresh withModel etag →
+        productcontext(adRevision) → POST /order/choices. Without this the
+        updated revision is never published (silent write loss).
+        """
+        _, fresh_etag = self._c.adinput_get(f"/adinput/ad/withModel/{ad_id}")
+        ad_revision = re.sub(r"\D", "", fresh_etag) or fresh_etag
+        self._c.adinput_get(
+            f"/adinput/product/recommerce/{ad_id}/productcontext?adRevision={ad_revision}"
+        )
+        publish_result, _, _ = self._c.adinput_post(
+            f"/adinput/order/choices/{ad_id}",
+            body=_PUBLISH_BASIC_BODY,
+            content_type="application/x-www-form-urlencoded",
+        )
+        return publish_result
+
+    def edit(
+        self,
+        ad_id: int,
+        *,
+        price: Optional[int] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict:
+        """
+        Edit a listing's price, title, and/or description, publish the change,
+        and verify it actually went live.
+
+        Flow: get_for_edit → update (draft revision) → publish (commit) →
+        read-back via adview. Raises RuntimeError if validation rejects the
+        update or if the read-back shows the fields did not change.
+        """
+        if price is None and title is None and description is None:
+            raise ValueError("specify at least one of price, title, description")
+
+        values, etag = self.get_for_edit(ad_id)
+        expected: dict = {}
+        if price is not None:
+            values["price"] = [{"price_amount": str(price)}]
+            expected["price"] = price
+        if title is not None:
+            values["title"] = title
+            expected["title"] = title
+        if description is not None:
+            values["description"] = description
+            expected["description"] = description
+
+        self.update(ad_id, values, etag)
+        publish_result = self._publish_basic(ad_id)
+
+        # Read-back: prove the change is live before reporting success.
+        mismatched: dict = {}
+        for delay in _READBACK_DELAYS:
+            if delay:
+                time.sleep(delay)
+            after = self.get(ad_id).get("ad", {})
+            mismatched = {
+                k: after.get(k)
+                for k, v in expected.items()
+                if _norm_field(after.get(k)) != _norm_field(v)
+            }
+            if not mismatched:
+                break
+        if mismatched:
+            detail = {k: {"live": v, "expected": expected[k]} for k, v in mismatched.items()}
+            raise RuntimeError(
+                f"Update was submitted and published for ad {ad_id}, but the change "
+                f"was not visible in adview after ~5 min: {detail}. "
+                f"It may still propagate — re-check with get_listing before retrying."
+            )
+        return {"ad_id": ad_id, "changed": sorted(expected), "publish": publish_result}
 
     def upload_images(self, ad_id: int, image_paths: list[str]) -> list[str]:
         """
@@ -324,10 +440,9 @@ class ListingsAPI:
         )
 
         # Step 3: publish as Basic (free)
-        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
         publish_result, _, _ = self._c.adinput_post(
             f"/adinput/order/choices/{ad_id}",
-            body=body,
+            body=_PUBLISH_BASIC_BODY,
             content_type="application/x-www-form-urlencoded",
         )
         publish_result["ad_id"] = ad_id
@@ -335,12 +450,10 @@ class ListingsAPI:
 
     def set_price(self, ad_id: int, price: int) -> dict:
         """
-        Change the price on a listing. Fetches current values, updates price,
-        and submits. Returns the update response.
+        Change the price on a listing. Full edit flow with publish + read-back
+        verification (see edit()).
         """
-        values, etag = self.get_for_edit(ad_id)
-        values["price"] = [{"price_amount": str(price)}]
-        return self.update(ad_id, values, etag)
+        return self.edit(ad_id, price=price)
 
     def republish(self, ad_id: int) -> dict:
         """
@@ -350,10 +463,9 @@ class ListingsAPI:
 
         Returns the publish response: {"order-id": ..., "is-completed": True, ...}
         """
-        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
         result, _, _ = self._c.adinput_post(
             f"/adinput/order/choices/{ad_id}",
-            body=body,
+            body=_PUBLISH_BASIC_BODY,
             content_type="application/x-www-form-urlencoded",
         )
         return result

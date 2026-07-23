@@ -331,7 +331,7 @@ def create_listing(
     image_ids: str = "",
     meetup: bool = True,
     shipping: bool = False,
-    buy_now: bool = False,
+    buy_now: bool = True,
     seller_pays_shipping: bool = False,
     package_size: str = "SMALL",
     city: str = "",
@@ -354,7 +354,7 @@ def create_listing(
                  e.g. "abc123,def456"
     meetup:                Allow buyer pickup / meetup. Default True.
     shipping:              Offer ToriDiili shipping. Default False.
-    buy_now:               Enable Tori "Osta heti" buy-now flow. Default False.
+    buy_now:               Enable Tori "Osta heti" buy-now flow. Default True.
     seller_pays_shipping:  Seller covers shipping cost. Default False.
     package_size:          ToriDiili package size when shipping=True.
                            "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm) [default]

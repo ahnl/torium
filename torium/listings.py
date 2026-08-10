@@ -46,6 +46,18 @@ def _norm_field(v):
     return v
 
 
+def owner_from_adview(data: dict) -> dict:
+    """
+    Pull the seller identity out of an adview response.
+
+    The seller appears ONLY in `meta` — the `ad` body has no seller field.
+    Returns {"owner_id": int|None, "owner_urn": str}; owner_urn has the form
+    "sdrn:aurora.tori.fi:user:{id}".
+    """
+    meta = data.get("meta") or {}
+    return {"owner_id": meta.get("ownerId"), "owner_urn": meta.get("ownerUrn", "")}
+
+
 def _raise_on_violations(resp: dict) -> None:
     """
     The adinput update PUT can return 200 with validation violations in
@@ -177,6 +189,15 @@ class ListingsAPI:
         adViewTypeLabel (Myydään/Ostetaan/Annetaan).
         """
         return self._c.get(f"/adview/{ad_id}", "ADVIEW-PROVIDER-RC")
+
+    def owner(self, ad_id: int) -> dict:
+        """
+        Who is selling this ad: {"owner_id": int|None, "owner_urn": str}.
+
+        This is the bridge from an ad to the seller behind it — the starting
+        point for looking up that seller's other listings.
+        """
+        return owner_from_adview(self.get(ad_id))
 
     def dispose(self, ad_id: int) -> None:
         """Merkitse myydyksi — mark listing as sold. No body. Returns 204."""

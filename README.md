@@ -202,7 +202,7 @@ See [Local install (MCP and CLI)](#local-install-mcp-and-cli) above for setup. T
 | --------------------- | ---------------------------------------------------------------------------- |
 | `list_my_listings`    | Own listings, optional `facet` filter; returns all (auto-paginated)          |
 | `search_my_listings`  | Own listings with full detail; returns all (auto-paginated)                  |
-| `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
+| `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs, `owner_id` |
 | `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
 | `get_create_categories` | Find category IDs by Finnish keyword (for create_listing)                  |
 | `create_listing`      | Create and submit a new free listing, with optional ToriDiili shipping        |
@@ -269,6 +269,7 @@ listings = client.listings.search(facet="ACTIVE")
 client.listings.dispose(12345)
 client.listings.delete(12345)
 stats = client.listings.stats(12345)
+client.listings.owner(12345)                 # {"owner_id": 796756958, "owner_urn": "sdrn:..."}
 client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100")
 client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100",
                        shipping=True, package_size="MEDIUM", city="Helsinki")  # offer ToriDiili shipping

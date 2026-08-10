@@ -198,6 +198,10 @@ def get_listing(ad_id: int) -> str:
 
     ad_id: The listing ID (integer).
 
+    'owner_id' identifies the seller. Two listings with the same owner_id are sold
+    by the same person, so it is what you use to answer "does this seller have other
+    items?" — it is not shown anywhere in the listing text.
+
     The returned 'images' list contains direct image URLs. Use the fetch_image tool
     to load them and inspect with vision when the user asks about anything that might
     be visible in photos — condition, model number, serial number, visible damage,
@@ -229,6 +233,7 @@ def get_listing(ad_id: int) -> str:
         "images": [img["uri"] for img in ad.get("images", [])],
         "disposed": ad.get("disposed", False),
         "edited": meta.get("edited", ""),
+        "owner_id": meta.get("ownerId"),
     }
     return json.dumps(result, ensure_ascii=False)
 

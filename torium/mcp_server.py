@@ -641,6 +641,48 @@ def search_listings(
 
 
 @mcp.tool()
+def get_seller_listings(ad_id: int) -> str:
+    """
+    List the OTHER listings by the same seller as a given ad.
+
+    Takes any ad_id, finds who is selling it (owner_id from the adview), and returns
+    that seller's other active public listings, newest first. Use this to answer
+    "what else is this seller selling?" or "does this seller have more items?".
+
+    ad_id: A listing ID (integer) belonging to the seller you're interested in.
+
+    Returns each listing with id, title, price, location, trade_type and
+    canonical_url. Always use canonical_url as the item link. Each id can be passed
+    to get_listing for full detail or to fetch_image to inspect the photos.
+    """
+    c = _get_client()
+    owner = c.listings.owner(ad_id).get("owner_id")
+    if not owner:
+        return json.dumps(
+            {"error": "Could not determine the seller (owner_id) for this ad.", "ad_id": ad_id},
+            ensure_ascii=False,
+        )
+    docs = c.listings.seller_ads(owner)
+    out = []
+    for doc in docs:
+        price = doc.get("price", {})
+        out.append({
+            "id": doc.get("ad_id") or doc.get("id"),
+            "title": doc.get("heading", ""),
+            "price": price.get("amount"),
+            "currency": price.get("currency_code", "EUR"),
+            "location": doc.get("location", ""),
+            "trade_type": doc.get("trade_type", ""),
+            "labels": [l["text"] for l in doc.get("labels", [])],
+            "url": doc.get("canonical_url", ""),
+            "flags": doc.get("flags", []),
+        })
+    return json.dumps(
+        {"owner_id": owner, "count": len(out), "listings": out}, ensure_ascii=False
+    )
+
+
+@mcp.tool()
 def get_search_categories(query: str = "") -> str:
     """
     Search categories by Finnish name. Returns category codes for search_listings().

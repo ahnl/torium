@@ -4,7 +4,8 @@ Fork projektista `ahnl/tori-client`. Tori.fi:n epävirallinen API-client (kirjas
 
 ## Nykytila
 
-- **Toimii:** haku, omat ilmoitukset, viestit, suosikit, create_listing (kuvineen), republish_listing, dispose/delete.
+- **Toimii:** haku, omat ilmoitukset, viestit, suosikit, create_listing (kuvineen), republish_listing, dispose/delete, **get_seller_listings (myyjän muut ilmoitukset — uusi 2026-08-11)**.
+- **Uutta 2026-08-11 — "myyjän muut ilmoitukset" RATKAISTU:** kaapattiin natiivi gateway-endpoint (`/org/SEARCH_ID_BAP_COMMON?orgId=`, service `SEARCH-QUEST-RC`) Android-appista emulaattori+HTTP-Toolkitilla. Toteutus `seller_ads()` + MCP `get_seller_listings`, testit läpi. **Vielä live-vahvistamatta oikeaa APIa vasten** (unit-testit vihreät). Ks. Seuraavat askeleet + osio alempana.
 - **Korjattu ja live-vahvistettu 2026-07-13:** edit_listing / listings.edit() — hiljainen tietohäviö korjattu (ks. alla). Testattu oikeaa APIa vasten: 12265237 (EXPIRED → hinta 30 € + republish onnistui), 20701613 (kuvaus meni liveksi). Paikallinen MCP-serveri pitää käynnistää uudelleen ennen kuin korjaus on MCP-työkaluissa käytössä (editable install; lisäksi CLI-testit rotatoivat refresh-tokenin, jonka vanha serveriprosessi pitää muistissa).
 - **Uutta 2026-08-10:** `listings.owner(ad_id)` ja MCP:n `get_listing` palauttavat myyjän tunnisteen (`owner_id`). Tämä on vaihe 0 "myyjän muut ilmoitukset" -ominaisuudesta (ks. Seuraavat askeleet). Testit: `tests/test_seller_identity.py`, ei verkkoa.
 - **Kesken käyttäjän datassa:** 62 EXPIRED-ilmoitusta odottaa julkaisua. HUOM: 11.7. tehdyt tekstipäivitykset ovat tallessa niiden adinput-luonnosrevisioissa — commit (publish) riittää viemään ne liveksi, tekstejä ei tarvitse lähettää uudelleen. SpineGymin (12265237) live-kuvauksessa lukee yhä "Nyt 75 €" vaikka hintakenttä on 30 € — kuvausteksti pitää päivittää.
@@ -38,11 +39,25 @@ Fork projektista `ahnl/tori-client`. Tori.fi:n epävirallinen API-client (kirjas
 2. Massa-ajo 62 EXPIRED-ilmoitukselle: 11.7. tekstipäivitykset ovat jo luonnosrevisioissa, joten `republish_listing` committoi ne samalla — TAI aja `edit_listing` uusilla teksteillä (varmistetumpi: read-back todistaa). SpineGymin kuvausteksti pitää joka tapauksessa päivittää ("Nyt 75 €" → 30 €).
 3. Tarkista massa-ajon jälkeen pistokokein pari ilmoitusta `get_listing`illä (muista ~minuuttien propagaatio).
 
-### "Myyjän muut ilmoitukset" — tilanne 2026-08-10
+### "Myyjän muut ilmoitukset" — RATKAISTU 2026-08-11 ✅
 
-Tavoite: `get_seller_listings(ad_id)` → myyjän muut myynnissä olevat ilmoitukset.
+Tavoite: `get_seller_listings(ad_id)` → myyjän muut myynnissä olevat ilmoitukset. **Toteutettu portable MCP-työkaluna** (ei selainta, toimii myös mobiilissa).
 
-**Vaihe 0 — VALMIS.** `owner_id` saatavilla (`listings.owner()` + `get_listing`).
+**Endpoint (kaapattu Android-appista mitmproxy/HTTP-Toolkitilla, emulaattori API 33):**
+```
+GET /org/SEARCH_ID_BAP_COMMON?client=NMP-IOS&orgId={owner_id}&include_anonymous=false&page={n}
+    host:            apps-gw-poc.svc.tori.fi   (sama kuin BASE_URL)
+    finn-gw-service: SEARCH-QUEST-RC           (sama palvelu kuin päähaku!)
+    EI x-client-id-otsaketta.  Vastaus: { "docs": [...], "metadata": { "paging": {param,current,last} } }
+```
+- `orgId` on **bitilleen sama kuin adview'n `meta.ownerId`** → olemassa oleva `owner()` syöttää suoraan.
+- Vastaus on identtinen päähaun `docs`-muodon kanssa (`ad_id`, `heading`, `price.amount`, `location`, `canonical_url`, `image_urls`, `trade_type`, `extras`).
+- Sivutus: `page`-parametri, loop kunnes `metadata.paging.last` saavutettu. Verna (451218839): 28 ilmoitusta, `last:1`.
+- **Recon-oletus oli väärä:** ei TRUST-PROFILE-API + X-Client-Id, vaan hakuperheen `/org/{searchKey}?orgId=`.
+
+**Toteutus:** `listings.seller_ads(owner_id, max_results=None)` (kirjasto) + MCP-työkalu `get_seller_listings(ad_id)` (owner→seller_ads→kompakti lista). Ei tarvinnut laajentaa `_request`ia (ei extra-headereita). Testit: `tests/test_seller_ads.py` (4 kpl, mock-client, ei verkkoa — läpi 2026-08-11).
+
+**Vaiheet 0–2 (aiempi tutkinta, jää historiaksi):** `owner_id` saatavilla (`listings.owner()` + `get_listing`).
 
 **Tiedustelun tulokset (Chrome, kirjautunut web-sessio, 2026-08-10):**
 - `https://www.tori.fi/profile/ads?userId=X` **näyttää toisen myyjän ilmoitukset** — nimi, "Torin käyttäjä vuodesta", arvostelumäärä, välilehdet "Ilmoitukset (n)" / "Arvostelut (n)", ja kortit joissa hinta, ToriDiili-merkki, sijainti, päiväys ja linkki `/{adId}`.
@@ -64,6 +79,10 @@ Kokeiltu perusteellisesti. `auth.py`:n virta laajennettiin: refresh → access �
 **Vaihe 2 — SELAINADAPTERI: suositeltu toteutusreitti.**
 Ilmoituslista on **täysin SSR** (podlet `trust-public-profile-layout`); ainoa client-XHR on `/profile/podium-resource/header/api` (yläpalkki) — cookie-autentikoitua JSON-endpointtia EI ole. Skill joka avaa `tori.fi/profile/ads?userId={owner_id}` Claude-in-Chromessa (kirjautunut sessio) ja lukee kortit accessibility-puusta: hinta, ToriDiili, sijainti, päiväys, linkki `/{adId}`. Todennettu toimivaksi 2026-08-10. Torium antaa `owner_id`:n (`get_listing`), jokainen kortti-adId voidaan rikastaa `get_listing`illä. Sama kuvio kuin `vinted-era`-skillissä.
 - **Sivutus (todennettu 2026-08-10, myyjä 451218839 "Verna", 28 aktiivista):** kaikki 28 korttia renderöityvät kerralla DOM:iin, ei "näytä lisää" -nappia eikä ääretöntä vieritystä (vieritys pohjaan ei kasvattanut määrää), ei `?page=`-parametria. Profiili näyttää siis kaikki aktiiviset ilmoitukset yhdellä sivulla. Kortin kentät: sijainti, päiväys ("Tänään"/pvm), otsikko, hinta, ToriDiili-merkki, linkki `/{adId}`. **Vielä auki:** käyttäytyminen 50+ ilmoituksella (suurin testattu 28) — mekanismi (täysi SSR-render) viittaa siihen ettei client-sivutusta ole, mutta palvelin voi silti katkaista jossain rajassa.
+- **Re-verifiointi ja verkkotason näyttö (2026-08-11, sama myyjä Verna):**
+  - `performance.getEntriesByType('resource')` (71 resurssia): ainoa tori.fi-client-XHR on `/profile/podium-resource/header/api`, ja se kuuluu **yläpalkin** `<topbar-data-service api-url=...>` -web-komponentille — EI ilmoituslistalle. Ilmoituslistalle ei ole omaa client-endpointtia edes 28 ilmoituksella. Vahvistaa: cookie-autentikoitua JSON-endpointtia ei ole, vain SSR-HTML raaputettavaksi.
+  - **Sivun HTML ei paljasta gatewaysta mitään:** haku `client-id` / `x-client-id` / `TRUST-PROFILE` / `apps-gw` / `svc.tori` / `podlet` → kaikki `null`. Web-taso proxyttaa upstream-gateway-kutsun palvelinpuolella, joten **selaintarkastelu ei voi tuottaa portable-endpointin polkua/X-Client-Id-arvoa.** → Vaiheen 3 mobiilikaappaus on ainoa reitti natiiviin MCP-työkaluun.
+  - **DOM-scrape vankka 28 kortilla:** 28 korttia, jokainen adId `/{adId}`-linkistä (regex `/(\d{6,})`) + otsikko linkin tekstistä. Rikastus `get_listing`illä toimii kortti kerrallaan. Selain-fallback on siis valmis skilliksi jo nyt.
 
 ## Ympäristötiedot
 

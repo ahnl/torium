@@ -30,6 +30,11 @@ if TYPE_CHECKING:
 
 _IMG_BASE = "https://img.tori.net/dynamic/default/"
 
+# Seller ("org") listing search — same BAP search key + SEARCH-QUEST-RC service as
+# public search; orgId is the ownerId from an adview's meta block. Captured from the
+# Android app 2026-08-11 (GET /org/SEARCH_ID_BAP_COMMON?client=…&orgId=…&include_anonymous=false).
+_ORG_SEARCH_KEY = "SEARCH_ID_BAP_COMMON"
+
 # Publish as Basic (free): urn:product:package-specification:10
 _PUBLISH_BASIC_BODY = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
 
@@ -198,6 +203,47 @@ class ListingsAPI:
         point for looking up that seller's other listings.
         """
         return owner_from_adview(self.get(ad_id))
+
+    def seller_ads(self, owner_id: int, max_results: Optional[int] = None) -> list:
+        """
+        Another seller's public listings, by their ``owner_id``.
+
+        Hits the "org" search endpoint — the same BAP search key and
+        SEARCH-QUEST-RC gateway service as the public search. ``orgId`` is exactly
+        the ``ownerId`` carried in an adview's ``meta`` block, so
+        ``owner(ad_id)["owner_id"]`` feeds straight in. The server sorts newest
+        first (PUBLISHED_DESC) and paginates via the ``page`` param; this loops
+        until ``metadata.paging.last`` is reached.
+
+        Returns the raw list of ``docs`` (each: ``ad_id``/``id``, ``heading``,
+        ``price``, ``location``, ``canonical_url``, ``image_urls``, ``trade_type``,
+        ``extras`` …). Same doc shape as ``search.search()``.
+
+        max_results: stop once this many are collected. None → fetch every page.
+        """
+        all_docs: list = []
+        page = 1
+        while True:
+            # client=NMP-IOS keeps the iOS identity torium spoofs everywhere else;
+            # the captured app sent ANDROID, which also works if this ever 400s.
+            params = {
+                "client": "NMP-IOS",
+                "orgId": owner_id,
+                "include_anonymous": "false",
+                "page": page,
+            }
+            qs = urllib.parse.urlencode(params)
+            data = self._c.get(f"/org/{_ORG_SEARCH_KEY}?{qs}", "SEARCH-QUEST-RC")
+            docs = data.get("docs", [])
+            all_docs.extend(docs)
+            if max_results is not None and len(all_docs) >= max_results:
+                return all_docs[:max_results]
+            paging = (data.get("metadata") or {}).get("paging") or {}
+            last = paging.get("last")
+            if not docs or not isinstance(last, int) or page >= last:
+                break
+            page += 1
+        return all_docs
 
     def dispose(self, ad_id: int) -> None:
         """Merkitse myydyksi — mark listing as sold. No body. Returns 204."""

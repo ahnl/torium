@@ -198,6 +198,10 @@ def get_listing(ad_id: int) -> str:
 
     ad_id: The listing ID (integer).
 
+    'owner_id' identifies the seller. Two listings with the same owner_id are sold
+    by the same person, so it is what you use to answer "does this seller have other
+    items?" — it is not shown anywhere in the listing text.
+
     The returned 'images' list contains direct image URLs. Use the fetch_image tool
     to load them and inspect with vision when the user asks about anything that might
     be visible in photos — condition, model number, serial number, visible damage,
@@ -229,6 +233,7 @@ def get_listing(ad_id: int) -> str:
         "images": [img["uri"] for img in ad.get("images", [])],
         "disposed": ad.get("disposed", False),
         "edited": meta.get("edited", ""),
+        "owner_id": meta.get("ownerId"),
     }
     return json.dumps(result, ensure_ascii=False)
 
@@ -331,7 +336,7 @@ def create_listing(
     image_ids: str = "",
     meetup: bool = True,
     shipping: bool = False,
-    buy_now: bool = False,
+    buy_now: bool = True,
     seller_pays_shipping: bool = False,
     package_size: str = "SMALL",
     city: str = "",
@@ -354,7 +359,7 @@ def create_listing(
                  e.g. "abc123,def456"
     meetup:                Allow buyer pickup / meetup. Default True.
     shipping:              Offer ToriDiili shipping. Default False.
-    buy_now:               Enable Tori "Osta heti" buy-now flow. Default False.
+    buy_now:               Enable Tori "Osta heti" buy-now flow. Default True.
     seller_pays_shipping:  Seller covers shipping cost. Default False.
     package_size:          ToriDiili package size when shipping=True.
                            "SMALL"  → Peruspaketti  (max 4 kg,  40×32×15 cm) [default]
@@ -408,8 +413,9 @@ def edit_listing(
 ) -> str:
     """
     Edit a listing's price, title, or description. Fetches current values from
-    the adinput service, applies the requested changes, and submits the update.
-    At least one of price/title/description must be provided.
+    the adinput service, applies the requested changes, submits the update,
+    publishes it live, and verifies via read-back that the change actually
+    took effect. At least one of price/title/description must be provided.
 
     ad_id:       The listing ID to update.
     price:       New price in euros. 0 = keep current price.
@@ -420,23 +426,25 @@ def edit_listing(
         return "Error: specify at least one of price, title, or description."
 
     c = _get_client()
-    values, etag = c.listings.get_for_edit(ad_id)
+    try:
+        result = c.listings.edit(
+            ad_id,
+            price=price or None,
+            title=title or None,
+            description=description or None,
+        )
+    except (RuntimeError, ValueError) as e:
+        return f"Error: {e}"
 
     changed = []
     if price:
-        values["price"] = [{"price_amount": str(price)}]
         changed.append(f"price → {price} €")
     if title:
-        values["title"] = title
         changed.append(f"title → {title!r}")
     if description:
-        values["description"] = description
         changed.append("description updated")
-
-    result = c.listings.update(ad_id, values, etag)
-    new_etag = result.get("etag", "")
     summary = ", ".join(changed)
-    return f"Listing {ad_id} updated: {summary}. New ETag: {new_etag}"
+    return f"Listing {ad_id} updated, published and verified live: {summary}."
 
 
 # ── Messaging ─────────────────────────────────────────────────────────────────
@@ -630,6 +638,48 @@ def search_listings(
         })
 
     return json.dumps({"page": page, "count": len(out), "results": out}, ensure_ascii=False)
+
+
+@mcp.tool()
+def get_seller_listings(ad_id: int) -> str:
+    """
+    List the OTHER listings by the same seller as a given ad.
+
+    Takes any ad_id, finds who is selling it (owner_id from the adview), and returns
+    that seller's other active public listings, newest first. Use this to answer
+    "what else is this seller selling?" or "does this seller have more items?".
+
+    ad_id: A listing ID (integer) belonging to the seller you're interested in.
+
+    Returns each listing with id, title, price, location, trade_type and
+    canonical_url. Always use canonical_url as the item link. Each id can be passed
+    to get_listing for full detail or to fetch_image to inspect the photos.
+    """
+    c = _get_client()
+    owner = c.listings.owner(ad_id).get("owner_id")
+    if not owner:
+        return json.dumps(
+            {"error": "Could not determine the seller (owner_id) for this ad.", "ad_id": ad_id},
+            ensure_ascii=False,
+        )
+    docs = c.listings.seller_ads(owner)
+    out = []
+    for doc in docs:
+        price = doc.get("price", {})
+        out.append({
+            "id": doc.get("ad_id") or doc.get("id"),
+            "title": doc.get("heading", ""),
+            "price": price.get("amount"),
+            "currency": price.get("currency_code", "EUR"),
+            "location": doc.get("location", ""),
+            "trade_type": doc.get("trade_type", ""),
+            "labels": [l["text"] for l in doc.get("labels", [])],
+            "url": doc.get("canonical_url", ""),
+            "flags": doc.get("flags", []),
+        })
+    return json.dumps(
+        {"owner_id": owner, "count": len(out), "listings": out}, ensure_ascii=False
+    )
 
 
 @mcp.tool()

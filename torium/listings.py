@@ -30,6 +30,57 @@ if TYPE_CHECKING:
 
 _IMG_BASE = "https://img.tori.net/dynamic/default/"
 
+# Seller ("org") listing search — same BAP search key + SEARCH-QUEST-RC service as
+# public search; orgId is the ownerId from an adview's meta block. Captured from the
+# Android app 2026-08-11 (GET /org/SEARCH_ID_BAP_COMMON?client=…&orgId=…&include_anonymous=false).
+_ORG_SEARCH_KEY = "SEARCH_ID_BAP_COMMON"
+
+# Publish as Basic (free): urn:product:package-specification:10
+_PUBLISH_BASIC_BODY = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
+
+# Read-back retry schedule (seconds before each attempt). Adview propagation
+# after the order/choices commit takes minutes, not seconds — verified live
+# 2026-07-13: a committed price change appeared in adview only after ~2-10 min.
+_READBACK_DELAYS = (0, 10, 15, 30, 30, 60, 60, 60, 60)
+
+
+def _norm_field(v):
+    """Normalize a field value for read-back comparison (whitespace runs in strings)."""
+    if isinstance(v, str):
+        return " ".join(v.split())
+    return v
+
+
+def owner_from_adview(data: dict) -> dict:
+    """
+    Pull the seller identity out of an adview response.
+
+    The seller appears ONLY in `meta` — the `ad` body has no seller field.
+    Returns {"owner_id": int|None, "owner_urn": str}; owner_urn has the form
+    "sdrn:aurora.tori.fi:user:{id}".
+    """
+    meta = data.get("meta") or {}
+    return {"owner_id": meta.get("ownerId"), "owner_urn": meta.get("ownerUrn", "")}
+
+
+def _raise_on_violations(resp: dict) -> None:
+    """
+    The adinput update PUT can return 200 with validation violations in
+    meta-data (e.g. {"violation-count": 3, "title": {"violations": [...]}}).
+    A revision with violations never goes live, so treat it as an error.
+    """
+    meta = resp.get("meta-data") or resp.get("ad", {}).get("meta-data") or {}
+    count = meta.get("violation-count", 0)
+    if count:
+        details = {
+            field: info["violations"]
+            for field, info in meta.items()
+            if isinstance(info, dict) and info.get("violations")
+        }
+        raise RuntimeError(
+            f"Update rejected by validation ({count} violations): {details}"
+        )
+
 
 def _image_dimensions(data: bytes) -> tuple[int, int]:
     """Return (width, height) by parsing JPEG or PNG file headers."""
@@ -144,6 +195,56 @@ class ListingsAPI:
         """
         return self._c.get(f"/adview/{ad_id}", "ADVIEW-PROVIDER-RC")
 
+    def owner(self, ad_id: int) -> dict:
+        """
+        Who is selling this ad: {"owner_id": int|None, "owner_urn": str}.
+
+        This is the bridge from an ad to the seller behind it — the starting
+        point for looking up that seller's other listings.
+        """
+        return owner_from_adview(self.get(ad_id))
+
+    def seller_ads(self, owner_id: int, max_results: Optional[int] = None) -> list:
+        """
+        Another seller's public listings, by their ``owner_id``.
+
+        Hits the "org" search endpoint — the same BAP search key and
+        SEARCH-QUEST-RC gateway service as the public search. ``orgId`` is exactly
+        the ``ownerId`` carried in an adview's ``meta`` block, so
+        ``owner(ad_id)["owner_id"]`` feeds straight in. The server sorts newest
+        first (PUBLISHED_DESC) and paginates via the ``page`` param; this loops
+        until ``metadata.paging.last`` is reached.
+
+        Returns the raw list of ``docs`` (each: ``ad_id``/``id``, ``heading``,
+        ``price``, ``location``, ``canonical_url``, ``image_urls``, ``trade_type``,
+        ``extras`` …). Same doc shape as ``search.search()``.
+
+        max_results: stop once this many are collected. None → fetch every page.
+        """
+        all_docs: list = []
+        page = 1
+        while True:
+            # client=NMP-IOS keeps the iOS identity torium spoofs everywhere else;
+            # the captured app sent ANDROID, which also works if this ever 400s.
+            params = {
+                "client": "NMP-IOS",
+                "orgId": owner_id,
+                "include_anonymous": "false",
+                "page": page,
+            }
+            qs = urllib.parse.urlencode(params)
+            data = self._c.get(f"/org/{_ORG_SEARCH_KEY}?{qs}", "SEARCH-QUEST-RC")
+            docs = data.get("docs", [])
+            all_docs.extend(docs)
+            if max_results is not None and len(all_docs) >= max_results:
+                return all_docs[:max_results]
+            paging = (data.get("metadata") or {}).get("paging") or {}
+            last = paging.get("last")
+            if not docs or not isinstance(last, int) or page >= last:
+                break
+            page += 1
+        return all_docs
+
     def dispose(self, ad_id: int) -> None:
         """Merkitse myydyksi — mark listing as sold. No body. Returns 204."""
         self._c.put(f"/ads/dispose/{ad_id}", "AD-ACTION")
@@ -211,11 +312,93 @@ class ListingsAPI:
         Submit a full ad update. values must be the complete field map (from
         get_for_edit), with any desired changes applied.
 
+        NOTE: this only stores a new adinput draft revision — the live ad does
+        NOT change until the publish step runs (see edit()). Raises RuntimeError
+        if the server reports validation violations in the response body.
+
         Returns the response which includes the new ETag and action URLs.
         """
-        return self._c.adinput_put(
+        result = self._c.adinput_put(
             f"/adinput/ad/recommerce/{ad_id}/update", values, etag
         )
+        _raise_on_violations(result)
+        return result
+
+    def _publish_basic(self, ad_id: int) -> dict:
+        """
+        Commit the current adinput revision live as Basic (free).
+
+        Same completion sequence create() uses: fresh withModel etag →
+        productcontext(adRevision) → POST /order/choices. Without this the
+        updated revision is never published (silent write loss).
+        """
+        _, fresh_etag = self._c.adinput_get(f"/adinput/ad/withModel/{ad_id}")
+        ad_revision = re.sub(r"\D", "", fresh_etag) or fresh_etag
+        self._c.adinput_get(
+            f"/adinput/product/recommerce/{ad_id}/productcontext?adRevision={ad_revision}"
+        )
+        publish_result, _, _ = self._c.adinput_post(
+            f"/adinput/order/choices/{ad_id}",
+            body=_PUBLISH_BASIC_BODY,
+            content_type="application/x-www-form-urlencoded",
+        )
+        return publish_result
+
+    def edit(
+        self,
+        ad_id: int,
+        *,
+        price: Optional[int] = None,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict:
+        """
+        Edit a listing's price, title, and/or description, publish the change,
+        and verify it actually went live.
+
+        Flow: get_for_edit → update (draft revision) → publish (commit) →
+        read-back via adview. Raises RuntimeError if validation rejects the
+        update or if the read-back shows the fields did not change.
+        """
+        if price is None and title is None and description is None:
+            raise ValueError("specify at least one of price, title, description")
+
+        values, etag = self.get_for_edit(ad_id)
+        expected: dict = {}
+        if price is not None:
+            values["price"] = [{"price_amount": str(price)}]
+            expected["price"] = price
+        if title is not None:
+            values["title"] = title
+            expected["title"] = title
+        if description is not None:
+            values["description"] = description
+            expected["description"] = description
+
+        self.update(ad_id, values, etag)
+        publish_result = self._publish_basic(ad_id)
+
+        # Read-back: prove the change is live before reporting success.
+        mismatched: dict = {}
+        for delay in _READBACK_DELAYS:
+            if delay:
+                time.sleep(delay)
+            after = self.get(ad_id).get("ad", {})
+            mismatched = {
+                k: after.get(k)
+                for k, v in expected.items()
+                if _norm_field(after.get(k)) != _norm_field(v)
+            }
+            if not mismatched:
+                break
+        if mismatched:
+            detail = {k: {"live": v, "expected": expected[k]} for k, v in mismatched.items()}
+            raise RuntimeError(
+                f"Update was submitted and published for ad {ad_id}, but the change "
+                f"was not visible in adview after ~5 min: {detail}. "
+                f"It may still propagate — re-check with get_listing before retrying."
+            )
+        return {"ad_id": ad_id, "changed": sorted(expected), "publish": publish_result}
 
     def upload_images(self, ad_id: int, image_paths: list[str]) -> list[str]:
         """
@@ -239,7 +422,7 @@ class ListingsAPI:
         *,
         meetup: bool = True,
         shipping: bool = False,
-        buy_now: bool = False,
+        buy_now: bool = True,
         seller_pays_shipping: bool = False,
         package_size: str = "SMALL",
         city: Optional[str] = None,
@@ -306,7 +489,7 @@ class ListingsAPI:
         image_bytes: Optional[List[bytes]] = None,
         meetup: bool = True,
         shipping: bool = False,
-        buy_now: bool = False,
+        buy_now: bool = True,
         seller_pays_shipping: bool = False,
         package_size: str = "SMALL",
         city: Optional[str] = None,
@@ -425,10 +608,9 @@ class ListingsAPI:
         )
 
         # Step 3: publish as Basic (free)
-        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
         publish_result, _, _ = self._c.adinput_post(
             f"/adinput/order/choices/{ad_id}",
-            body=body,
+            body=_PUBLISH_BASIC_BODY,
             content_type="application/x-www-form-urlencoded",
         )
         publish_result["ad_id"] = ad_id
@@ -436,12 +618,10 @@ class ListingsAPI:
 
     def set_price(self, ad_id: int, price: int) -> dict:
         """
-        Change the price on a listing. Fetches current values, updates price,
-        and submits. Returns the update response.
+        Change the price on a listing. Full edit flow with publish + read-back
+        verification (see edit()).
         """
-        values, etag = self.get_for_edit(ad_id)
-        values["price"] = [{"price_amount": str(price)}]
-        return self.update(ad_id, values, etag)
+        return self.edit(ad_id, price=price)
 
     def republish(self, ad_id: int) -> dict:
         """
@@ -451,10 +631,9 @@ class ListingsAPI:
 
         Returns the publish response: {"order-id": ..., "is-completed": True, ...}
         """
-        body = b"choices=urn%3Aproduct%3Apackage-specification%3A10"
         result, _, _ = self._c.adinput_post(
             f"/adinput/order/choices/{ad_id}",
-            body=body,
+            body=_PUBLISH_BASIC_BODY,
             content_type="application/x-www-form-urlencoded",
         )
         return result

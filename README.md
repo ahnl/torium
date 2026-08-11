@@ -202,7 +202,8 @@ See [Local install (MCP and CLI)](#local-install-mcp-and-cli) above for setup. T
 | --------------------- | ---------------------------------------------------------------------------- |
 | `list_my_listings`    | Own listings, optional `facet` filter; returns all (auto-paginated)          |
 | `search_my_listings`  | Own listings with full detail; returns all (auto-paginated)                  |
-| `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs    |
+| `get_listing`         | Full detail of any listing: title, description, price, extras, image URLs, `owner_id` |
+| `get_seller_listings` | Other listings by the same seller as a given ad (via `owner_id`)             |
 | `get_listing_stats`   | Clicks / messages / favorites for a listing                                  |
 | `get_create_categories` | Find category IDs by Finnish keyword (for create_listing)                  |
 | `create_listing`      | Create and submit a new free listing, with optional ToriDiili shipping        |
@@ -269,16 +270,20 @@ listings = client.listings.search(facet="ACTIVE")
 client.listings.dispose(12345)
 client.listings.delete(12345)
 stats = client.listings.stats(12345)
+client.listings.owner(12345)                 # {"owner_id": 796756958, "owner_urn": "sdrn:..."}
+client.listings.seller_ads(796756958)        # that seller's other public listings (docs list)
 client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100")
 client.listings.create("Title", "Desc", price=10, category="193", postal_code="96100",
                        shipping=True, package_size="MEDIUM", city="Helsinki")  # offer ToriDiili shipping
 client.listings.set_delivery(12345, shipping=True, package_size="LARGE",
                              city="Helsinki", postal_code="00100")  # change delivery options
 client.listings.republish(12345)             # republish an expired listing
-client.listings.set_price(12345, 7)          # change price directly
-values, etag = client.listings.get_for_edit(12345)  # fetch for editing
-values["title"] = "New title"
-client.listings.update(12345, values, etag)  # submit full update
+client.listings.set_price(12345, 7)          # change price (publishes + verifies)
+client.listings.edit(12345, title="New title", description="...")
+# edit() runs the full flow: update draft revision → publish → read-back
+# verification. Raises RuntimeError if the change did not go live.
+# NOTE: get_for_edit()/update() alone only store a draft revision — the live
+# ad does NOT change without the publish step. Use edit() instead.
 
 # Messaging
 convs = client.messaging.list_conversations()

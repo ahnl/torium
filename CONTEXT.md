@@ -51,16 +51,19 @@ Tavoite: `get_seller_listings(ad_id)` → myyjän muut myynnissä olevat ilmoitu
 - Kääntöpuoli: koska renderöinti on SSR, HTML on valmis heti — raapiminen on luotettavaa, ei hydraatio-odottelua.
 - **Sivutusta ei ole vielä testattu** (testimyyjällä 1 ilmoitus). Selvitettävä ennen toteutusta.
 
-**Vaihe 1 (seuraava, aikaboksi ~1 h) — SPiD-web-sessio toriumin sisällä.**
-`auth.py` autentikoituu jo Schibstedin `login.vend.fi`-kautta (`oauth/token` → `api/2/oauth/exchange` spidCodella → `public/login`). Tämä on sama identiteettipalvelu jota tori.fi-sivusto käyttää. Kokeiltava: saako samalla refresh-tokenilla web-sessioevästeen tori.fi:hin, jolloin torium voi hakea SSR-sivun itse ja parsia kortit → puhdas MCP-työkalu, ei selainta.
-*Riski:* session-vaihto voi vaatia web-clientin oman `client_id`:n → koe kaatuu. **HUOM: sammuta paikallinen MCP-serveri probejen ajaksi** (refresh-token rotatoituu).
+**Vaihe 1 — SPiD-web-sessio headlessina: TUTKITTU JA UMPIKUJA (2026-08-10).**
+Kokeiltu perusteellisesti. `auth.py`:n virta laajennettiin: refresh → access → `api/2/oauth/exchange` **`type=session`** (redirectUri-kentällä) palauttaa 64-merkkisen sessiokoodin. Webin login-sivu (`tori.fi/auth/login`) renderöi kaikki OIDC-parametrit palvelimella piilokenttiin: `spidClientId=650421cf50eeae31ecd2a2d3` (**sama kuin auth.py:n SPID_SERVER_CLIENT_ID**), `redirectUri=https://www.tori.fi/auth/loginCallback`, valmis `state` (base64-JSON + finnFlowId), `acrValues=otp-email`.
+**Miksi kaatuu:** sessiokoodin lunastus (`login.vend.fi/session/{code}`) asettaa SPiD-identiteettievästeet, mutta **ei täyttä interaktiivista SSO-sessiota**. OAuth `authorize` näillä evästeillä pomppaa `authn/email-login`iin (OTP-sähköpostikirjautuminen), ei palauta hiljaisesti koodia. Lisäksi login-sivun uudelleenohjaus rakennetaan **client-side-JS:llä** (`login-redirect-identity-sdk`), joten `requests` ei koskaan pääse authorize-vaiheeseen. Verdikti: ei saavutettavissa headlessina ilman OTP-syöttöä.
 
-**Vaihe 2 (varasuunnitelma, jos vaihe 1 kaatuu) — selainadapteri.**
-Skill joka avaa profiilisivun Claude-in-Chromessa ja lukee kortit accessibility-puusta. Todennettu toimivaksi 2026-08-10. Sama kuvio kuin `vinted-era`-skillissä (Vinted/DataDome).
+**Natiivi gateway-endpoint (vaiheen 3 johtolanka) — OSITTAIN AUKI.**
+- `TRUST-PROFILE-API /profile/{id}/ads` ilman `X-Client-Id`-otsaketta → 400 "No X-Client-Id header provided". **X-Client-Id-otsake (mikä tahansa ei-tyhjä arvo, esim. `tori`) läpäisee suodattimen.** Sen jälkeen reititys → 404: palvelu etuliittää polun `/public/`-osalla ja kaikki arvatut aliresurssit (`/ads`, `/listings`, `/items`, `/adverts`, `/reviews`, `/summary`, versioidut, URN-muoto) → 404. Jopa `/reviews` → 404 vaikka arvosteluja on. Eli joko väärä palvelunimi tai polkumuoto — hakuavaruus liian laaja arvattavaksi.
+- **KUOLLUT:** `AD-SUMMARIES /search?ownerId=X` ohittaa parametrin — palauttaa AINA omat ilmoitukset (bearer-tokenista johdettu käyttäjä). Vahvistettu: neljä eri ownerId-arvoa → identtinen total=144.
+- **KUOLLUT:** `SEARCH-QUEST-RC` seller_id/owner_id/user_id → 400 (tuntematon parametri).
+- Ratkaisu vaatii todellisen sovellusliikenteen: **Android-emulaattori (Google APIs -image, `adb root` → system-store-varmenne) + mitmproxy**, katso mitä Tori-appi kutsuu myyjäprofiilinäkymässä. Rootiton laite ei toiminut (käyttäjä-CA:han ei luoteta). Kun polku + `finn-gw-service` (+ mahdollinen X-Client-Id-arvo) tiedetään, `signing.gw_key()` allekirjoittaa sen ja toteutus on triviaali.
 
-**Vaihe 3 (vain jos natiivi gateway-endpoint halutaan) — emulaattorikaappaus.**
-Android-emulaattori (Google APIs -image, system-store-varmenne) + mitmproxy, katsotaan mitä Tori-appi kutsuu myyjäprofiilinäkymässä. Aiempi yritys rootittomalla laitteella epäonnistui (käyttäjä-CA:han ei luoteta). Johtolanka: `TRUST-PROFILE-API /profile/{id}/ads` palautti **400 eikä 404** — polku on olemassa, parametrit olivat väärin. Podletin nimi `trust-public-profile-layout` viittaa samaan backendiin.
-`signing.gw_key()` allekirjoittaa minkä tahansa polun, joten toteutus on triviaali heti kun polku + `finn-gw-service` tiedetään.
+**Vaihe 2 — SELAINADAPTERI: suositeltu toteutusreitti.**
+Ilmoituslista on **täysin SSR** (podlet `trust-public-profile-layout`); ainoa client-XHR on `/profile/podium-resource/header/api` (yläpalkki) — cookie-autentikoitua JSON-endpointtia EI ole. Skill joka avaa `tori.fi/profile/ads?userId={owner_id}` Claude-in-Chromessa (kirjautunut sessio) ja lukee kortit accessibility-puusta: hinta, ToriDiili, sijainti, päiväys, linkki `/{adId}`. Todennettu toimivaksi 2026-08-10. Torium antaa `owner_id`:n (`get_listing`), jokainen kortti-adId voidaan rikastaa `get_listing`illä. Sama kuvio kuin `vinted-era`-skillissä.
+- **Sivutus (todennettu 2026-08-10, myyjä 451218839 "Verna", 28 aktiivista):** kaikki 28 korttia renderöityvät kerralla DOM:iin, ei "näytä lisää" -nappia eikä ääretöntä vieritystä (vieritys pohjaan ei kasvattanut määrää), ei `?page=`-parametria. Profiili näyttää siis kaikki aktiiviset ilmoitukset yhdellä sivulla. Kortin kentät: sijainti, päiväys ("Tänään"/pvm), otsikko, hinta, ToriDiili-merkki, linkki `/{adId}`. **Vielä auki:** käyttäytyminen 50+ ilmoituksella (suurin testattu 28) — mekanismi (täysi SSR-render) viittaa siihen ettei client-sivutusta ole, mutta palvelin voi silti katkaista jossain rajassa.
 
 ## Ympäristötiedot
 
